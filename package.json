@@ -11,8 +11,8 @@
     "test": "echo \"Error: no test specified\"",
     "watch": "tsc -w",
     "dev": "yarn run watch && yarn run start",
-    "docker:build": "docker build -t mmmoli/contacttracing.app:v1.0.0 .",
-    "docker:publish": "docker build -t mmmoli/contacttracing.app:v1.0.0 ."
+    "docker:build": "docker build -t mmmoli/contacttracing.app:latest .",
+    "docker:push": "docker push mmmoli/contacttracing.app:latest"
   },
   "dependencies": {
     "apollo-server": "^2.11.0",
