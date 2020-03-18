@@ -17,7 +17,6 @@ export interface Context {
 }
 
 import errorMiddleware from './common/httpErrorHandler.middleware';
-import morgan from 'morgan';
 import helmet from 'helmet';
 
 export default class App {
@@ -77,7 +76,7 @@ export default class App {
    */
   public listen() {
     this.app.listen(this.port, () => {
-      console.log(`server started at http://localhost:${this.port}`);
+      console.log(`server started at http://localhost:${this.port}/graphql`);
     });
   }
 
@@ -86,12 +85,6 @@ export default class App {
    */
   private initializeMiddlewares() {
     this.app.use(bodyParser.json());
-    morgan.token('time', () => Date().toString()); // Both morgan and log4js are configured to same date format, so that log reading is meaningful and not confusing due to different date formats
-    this.app.use(
-      morgan(
-        '[:time] :remote-addr :method :url :status :res[content-length] :response-time ms'
-      )
-    );
     this.app.use(helmet());
     this.server.applyMiddleware({ app: this.app });
   }
