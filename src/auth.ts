@@ -6,7 +6,7 @@ export interface User {
 
 const key = process.env.AUTH_TOKEN;
 export const tradeTokenForUser = (token: string) => {
-  const success = !key && timingSafeCompare(token, key);
+  const success = key && timingSafeCompare(token, key);
   const user: User = {
     isAdmin: true
   };
