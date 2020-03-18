@@ -8,6 +8,6 @@ import App from './app';
 
 import config from './appConfigs';
 
-const app = new App(config.PORT);
+const app = new App(config);
 
 app.listen();
