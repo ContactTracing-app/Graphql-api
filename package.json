@@ -6,11 +6,13 @@
   "scripts": {
     "build": "tsc",
     "lint": "./node_modules/.bin/eslint --ext ts ./src",
-    "setup": "npm run lint && npm run build",
-    "start": "npm run setup && node ./build/server.js",
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "setup": "npm run build",
+    "start": "node ./build/server.js",
+    "test": "echo \"Error: no test specified\"",
     "watch": "tsc -w",
-    "dev": "yarn run watch && yarn run start"
+    "dev": "yarn run watch && yarn run start",
+    "docker:build": "docker build -t mmmoli/contacttracing.app:v1.0.0 .",
+    "docker:publish": "docker build -t mmmoli/contacttracing.app:v1.0.0 ."
   },
   "dependencies": {
     "apollo-server": "^2.11.0",
