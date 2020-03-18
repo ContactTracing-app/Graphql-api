@@ -1,62 +1,25 @@
-<p align="center">
-  <img height="300" src="https://storage.googleapis.com/stateless-quander-website-v3-a/1/2019/01/API@100-1-650x615.jpg">
-  <h1 align="center">Quander<br /> TypeScript Grandstack</p>
-</p>
+# Plumbline
 
-## Setup The Project
+Plumbline is a utility container that allows the use of neo4j-graphql-js with a Neo4j instance.
 
--   Clone this repo
--   Run `npm install`
--   Modify `.env` with your database settings
+## Running on GCP Cloud Run
 
-## Seed Data
+1. Adjust parameters in the Makefile
+2. Make sure to define
+the `NEO4J_URI`, `NEO4J_USERNAME`, `NEO4J_PASSWORD` of your instance.
+3. Define an env var `TYPEDEFS` with the typedefs you'd like to use with the Neo4j instance.
+2. `make cloudrun` will deploy the plumbline service given those specifics.
 
-If you want to play with some data, I've written a script to pull down handset data from the Samsung website (AEM) so you can import it into your Neo4j DB.
+## Running in any other Dockerized environment
 
-From your project run `npm run seed`.
+Plumbline is just an apollo server running neo4j-graphql-js.  Check the Makefile for the repository where the
+docker image can be found, and deploy with the key environment variables mentioned above.
 
-Once the command is complete, run the below query in Neo4j desktop. Make sure you change the devices.json file path to your project folder.
+## Build the container
 
-```
-CALL apoc.load.json('file:///path/to/project/data/devices.json') YIELD value AS device
-MERGE (product:Product { id: device.code, name: device.name, thumb: device.thumbUrl, price: device.price, released: datetime({epochmillis: apoc.date.parse(device.released, 'ms', 'yyyy-MM-dd')}) })
-MERGE (category:Category { id: device.category.id, name: device.category.name })
-MERGE (color:Color { name: device.color })
-MERGE (product)-[:BELONGS_TO]->(category)
-MERGE (product)-[:HAS_COLOR]->(color)
-WITH device, product
-UNWIND device.features AS feature
-WITH feature.key AS feature_key, feature.value AS feature_value, product
-MERGE (feature:Feature {key: feature_key, value: feature_value})
-MERGE (product)-[:HAS_FEATURE]->(feature)
-```
+You only need to do this if you're developing plumbline.  Existing containers are already hosted in a public
+repository, so you can run plumbline without this step.
 
-## Deployment
+1. Adjust the registry setting at the top of the `Makefile`.
+2. `make` will build and push your docker image
 
-TODO
-
-### Google Cloud Platform
-
-TODO
-
-### Azure
-
-TODO
-
-### AWS
-
-TODO
-
-## Cool Queries
-
-### Relevancy
-
-This will give you devices that are relevant to a device model
-
-```
-MATCH (o:Product {id: 'SM-G975FCWGBTU' })-[:HAS_FEATURE]->(f:Feature)<-[:HAS_FEATURE]-(p:Product)
-WHERE p.price > (o.price / 1.3)
-WITH p as product, count(*) AS relevancy, p.released as released, collect(distinct f.value) as features
-RETURN product
-ORDER BY relevancy, product.released DESC
-```

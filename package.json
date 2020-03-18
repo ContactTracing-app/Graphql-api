@@ -1,53 +1,35 @@
 {
-	"name": "typescript-grandstack",
-	"version": "0.0.9",
-	"description": "Opinionated GraphQL API using GraphQL, TypeScript, Node and Neo4j",
-	"main": "src/index.ts",
-	"scripts": {
-		"start": "NODE_ENV=production node ./build/index.js",
-		"build": "NODE_ENV=production npx rimraf ./build && tsc -p tsconfig.json && npx copyfiles -f ./src/schema.graphql ./build/",
-		"start:dev": "NODE_ENV=development npx nodemon -e ts,json,graphql,js --exec ts-node src/index.ts",
-		"seed": "npx ts-node seed/phones.ts",
-		"lint": "npx tslint 'src/**/*.{ts,tsx}'",
-		"test": "echo \"Error: no test specified\" && exit 1"
-	},
-	"engines": {
-		"node": ">=10.0.0"
-	},
-	"author": "Gavin Williams <gav@quander.io> (http://quander.io)",
-	"license": "ISC",
-	"dependencies": {
-		"@google-cloud/logging-winston": "^0.11.0",
-		"apollo-boost": "^0.3.1",
-		"apollo-cache-inmemory": "^1.5.1",
-		"apollo-client": "^2.5.1",
-		"apollo-link-http": "^1.5.14",
-		"apollo-server": "^2.4.8",
-		"apollo-server-express": "^2.4.8",
-		"cors": "^2.8.5",
-		"dotenv": "^7.0.0",
-		"express": "^4.16.4",
-		"graphql-tag": "^2.10.1",
-		"graphql-tools": "^4.0.4",
-		"neo4j-driver": "^1.7.3",
-		"neo4j-graphql-js": "^2.4.2",
-		"node-fetch": "^2.3.0",
-		"uuid": "^3.3.2",
-		"winston": "^3.2.1"
-	},
-	"devDependencies": {
-		"@types/dotenv": "^6.1.0",
-		"@types/express": "^4.16.1",
-		"@types/graphql": "^14.0.7",
-		"@types/node-fetch": "^2.1.7",
-		"@types/uuid": "^3.4.4",
-		"nodemon": "^1.18.10",
-		"prettier": "^1.16.4",
-		"rimraf": "^2.6.3",
-		"ts-node": "^8.0.3",
-		"tslint": "^5.14.0",
-		"tslint-config-prettier": "^1.18.0",
-		"tslint-config-standard": "^8.0.1",
-		"typescript": "^3.3.4000"
-	}
+  "name": "plumbline",
+  "version": "0.0.1",
+  "main": "index.js",
+  "description": "GraphQL container for Neo4j",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/moxious/plumbline.git"
+  },
+  "scripts": {
+    "build": "tsc",
+    "test": "echo 'no tests written!'",
+    "start": "npm run build && node dist/index.js"
+  },
+  "dependencies": {
+    "apollo-server": "^2.5.0",
+    "bunyan": "^1.8.12",
+    "dotenv": "^8.2.0",
+    "express": "^4.16.4",
+    "neo4j-driver": "^1.7.4",
+    "neo4j-graphql-js": "^2.13.0"
+  },
+  "devDependencies": {
+    "babel-cli": "^6.26.0",
+    "babel-plugin-transform-async-generator-functions": "^6.24.1",
+    "babel-plugin-transform-object-rest-spread": "^6.26.0",
+    "babel-plugin-transform-runtime": "^6.23.0",
+    "babel-preset-env": "^1.7.0",
+    "chai": "^4.2.0",
+    "mocha": "^6.1.4",
+    "sinon": "^7.3.2",
+    "typescript": "^3.8.3"
+  }
 }
