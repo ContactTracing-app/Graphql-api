@@ -1,23 +1,16 @@
 # ---- Base Node ----
 FROM node:12.15-slim AS base
-# set working directory
-WORKDIR /app
-# copy project file
+# Create Directory for the Container
+WORKDIR /usr/src/app
+# Only copy the package.json file to work directory
 COPY package.json .
-
-#
-# ---- Dependencies ----
-FROM base AS dependencies
-# install node packages
-RUN npm set progress=false && npm config set depth 0
-RUN npm install --only=production 
-# copy production node_modules aside
-RUN cp -R node_modules prod_node_modules
-# install ALL node_modules, including 'devDependencies'
+# Install all Packages
 RUN npm install
-
-COPY . .
-
+# Copy all other source code to work directory
+ADD . /usr/src/app
+# TypeScript
+RUN npm run build
+# Start
 # expose port and define CMD
 ENV PORT=8080
 EXPOSE ${PORT}

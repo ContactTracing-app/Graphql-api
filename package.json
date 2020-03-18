@@ -11,7 +11,7 @@
     "test": "echo \"Error: no test specified\"",
     "watch": "tsc -w",
     "dev": "yarn run watch && yarn run start",
-    "gs:publish": "cloud builds submit . --config=cloudbuild.yaml"
+    "gc:publish": "gcloud builds submit . --config=cloudbuild.yaml"
   },
   "dependencies": {
     "apollo-server": "^2.11.0",
