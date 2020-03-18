@@ -1,25 +1,23 @@
-# Plumbline
+# Steps to run the compile and run the server
 
-Plumbline is a utility container that allows the use of neo4j-graphql-js with a Neo4j instance.
+- Run `yarn` or `npm install`
+- Run `yarn build` or `npm run build`
+- Run `yarn start` or `npm run start`
 
-## Running on GCP Cloud Run
+## To run using docker
 
-1. Adjust parameters in the Makefile
-2. Make sure to define
-the `NEO4J_URI`, `NEO4J_USERNAME`, `NEO4J_PASSWORD` of your instance.
-3. Define an env var `TYPEDEFS` with the typedefs you'd like to use with the Neo4j instance.
-2. `make cloudrun` will deploy the plumbline service given those specifics.
+- Run `docker-compose -f docker-compose.yml up`
 
-## Running in any other Dockerized environment
+## To run mongo as a container
 
-Plumbline is just an apollo server running neo4j-graphql-js.  Check the Makefile for the repository where the
-docker image can be found, and deploy with the key environment variables mentioned above.
+- Run `docker-compose -f docker-compose-resources.yml up`
+  
+## Generate documentation for code. (uses tsconfig.json file present in your project for generating/serving docs)
 
-## Build the container
+- Run `yarn generate-docs` or `npm run generate-docs`
+- Run `yarn serve-docs` or `npm run serve-docs` to host the generated documentation
 
-You only need to do this if you're developing plumbline.  Existing containers are already hosted in a public
-repository, so you can run plumbline without this step.
+## Things to Remeber / Things to Do
 
-1. Adjust the registry setting at the top of the `Makefile`.
-2. `make` will build and push your docker image
-
+- While coding, please follow proper code-commenting practices.
+- **[Can refer and follow standards defined by Microsoft for the same](https://github.com/microsoft/tsdoc)**

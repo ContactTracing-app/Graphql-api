@@ -1,0 +1,56 @@
+// {
+//     "env": {
+//         "es6": true,
+//         "node": true
+//     },
+//     "extends": [
+//         "eslint:recommended",
+//         "plugin:@typescript-eslint/eslint-recommended"
+//     ],
+//     "globals": {
+//         "Atomics": "readonly",
+//         "SharedArrayBuffer": "readonly"
+//     },
+//     "parser": "@typescript-eslint/parser",
+//     "parserOptions": {
+//         "ecmaVersion": 2018,
+//         "sourceType": "module"
+//     },
+//     "plugins": [
+//         "@typescript-eslint"
+//     ],
+//     "rules": {
+//     "no-unused-vars": "off",
+//     "@typescript-eslint/no-unused-vars": "error"
+//     }
+// }
+{
+  "parser": "@typescript-eslint/parser",
+  "extends": [
+    "eslint:recommended",
+    "plugin:@typescript-eslint/eslint-recommended",
+    "plugin:@typescript-eslint/recommended"
+  ],
+  "env": {
+    "es6": true,
+    "node": true,
+    "jest": true
+  },
+  "parserOptions": {
+    "ecmaVersion": 2018,
+    "sourceType": "module"
+  },
+  "plugins": ["@typescript-eslint"],
+  "rules": {
+    "semi": ["error", "always"],
+    "@typescript-eslint/explicit-function-return-type": "off",
+    "@typescript-eslint/no-explicit-any": 0,
+    "@typescript-eslint/no-inferrable-types": [
+      "warn",
+      {
+        "ignoreParameters": true
+      }
+    ],
+    "@typescript-eslint/no-unused-vars": "warn"
+  }
+}
