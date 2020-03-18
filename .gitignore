@@ -33,6 +33,7 @@ report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 .lock-wscript
 
 # Compiled binary addons (https://nodejs.org/api/addons.html)
+lib/
 build/
 
 # Dependency directories
