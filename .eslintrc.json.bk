@@ -23,12 +23,12 @@
     "sourceType": "module"
   },
   "plugins": ["@typescript-eslint"],
-  "rules": {},
+  "rules": {
+    "comma-dangle": ["error", "always"]
+  },
   "settings": {
-    "import/resolver": {
-      "node": {
-        "extensions": [".js", ".jsx", ".ts", ".tsx"]
-      }
+    "import/parsers": {
+      "@typescript-eslint/parser": [".ts", ".tsx"]
     }
   }
 }

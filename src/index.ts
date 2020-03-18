@@ -1,9 +1,10 @@
 import { augmentTypeDefs, augmentSchema } from 'neo4j-graphql-js';
 import { ApolloServer, makeExecutableSchema } from 'apollo-server';
+import * as Express from 'express';
 import { v1 as neo4j } from 'neo4j-driver';
 import {
   typeDefs as defaultTypedefs,
-  resolvers as defaultResolvers,
+  resolvers as defaultResolvers
 } from './schema';
 
 require('dotenv').config();
@@ -15,40 +16,45 @@ const schema = makeExecutableSchema({
   typeDefs: augmentTypeDefs(typeDefs),
 
   resolverValidationOptions: {
-    requireResolversForResolveType: false,
+    requireResolversForResolveType: false
   },
-  resolvers,
+  resolvers
 });
 
 // Add auto-generated mutations
 const augmentedSchema = augmentSchema(schema, {
   query: {
-    exclude: ['LogContactPayload'],
-  },
+    exclude: ['LogContactPayload']
+  }
 });
 
 const driver = neo4j.driver(
   process.env.NEO4J_URI || 'bolt://localhost:7687',
   neo4j.auth.basic(
     process.env.NEO4J_USER || 'neo4j',
-    process.env.NEO4J_PASSWORD || 'letmein',
-  ),
+    process.env.NEO4J_PASSWORD || 'letmein'
+  )
 );
+
+export interface Context {
+  driver: neo4j.Driver;
+  req: Express.Request;
+}
 
 const server = new ApolloServer({
   schema: augmentedSchema,
   // inject the request object into the context to support middleware
   // inject the Neo4j driver instance to handle database call
-  context: ({ req }) => ({
+  context: ({ req }): Context => ({
     driver,
-    req,
-  }),
+    req
+  })
 });
 
 server
   .listen(
     process.env.PORT || process.env.GRAPHQL_LISTEN_PORT || 3000,
-    '0.0.0.0',
+    '0.0.0.0'
   )
   .then(({ url }) => {
     // eslint-disable-next-line no-console
