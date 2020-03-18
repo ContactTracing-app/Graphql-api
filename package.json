@@ -11,8 +11,7 @@
     "test": "echo \"Error: no test specified\"",
     "watch": "tsc -w",
     "dev": "yarn run watch && yarn run start",
-    "docker:build": "docker build -t mmmoli/contacttracing.app:latest .",
-    "docker:push": "docker push mmmoli/contacttracing.app:latest"
+    "gs:publish": "cloud builds submit . --config=cloudbuild.yaml"
   },
   "dependencies": {
     "apollo-server": "^2.11.0",
@@ -23,6 +22,7 @@
     "helmet": "^3.21.3",
     "neo4j-driver": "^4.0.2",
     "neo4j-graphql-js": "^2.13.0",
+    "tsscmp": "^1.0.6",
     "typescript": "^3.8.3"
   },
   "devDependencies": {

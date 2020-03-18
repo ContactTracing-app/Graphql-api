@@ -1,10 +1,14 @@
+import timingSafeCompare from 'tsscmp';
+
 export interface User {
   isAdmin: boolean;
 }
 
+const key = process.env.AUTH_TOKEN;
 export const tradeTokenForUser = (token: string) => {
+  const success = !key && timingSafeCompare(token, key);
   const user: User = {
     isAdmin: true
   };
-  return token === process.env.AUTH_TOKEN ? user : null;
+  return success ? user : null;
 };

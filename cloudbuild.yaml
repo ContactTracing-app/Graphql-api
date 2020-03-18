@@ -1,0 +1,6 @@
+steps:
+  - name: 'gcr.io/kaniko-project/executor:latest'
+    args:
+      - --destination=gcr.io/$PROJECT_ID/contact-tracing-graphql-api
+      - --cache=true
+      - --cache-ttl=336h
