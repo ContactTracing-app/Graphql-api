@@ -36,7 +36,7 @@
     "@types/helmet": "0.0.45",
     "@types/mongoose": "^5.7.3",
     "@types/morgan": "^1.9.0",
-    "@types/node": "^12.12.29",
+    "@types/node": "^13.9.1",
     "@typescript-eslint/eslint-plugin": "^2.22.0",
     "@typescript-eslint/parser": "^2.22.0",
     "eslint": "^6.8.0",
