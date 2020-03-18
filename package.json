@@ -9,6 +9,7 @@
     "url": "https://github.com/moxious/plumbline.git"
   },
   "scripts": {
+    "watch": "tsc -w",
     "build": "tsc",
     "setup": "npm run lint && npm run build",
     "lint": "eslint --ext=ts src",
