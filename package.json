@@ -10,8 +10,10 @@
   },
   "scripts": {
     "build": "tsc",
+    "setup": "npm run lint && npm run build",
+    "lint": "eslint --ext=ts src",
     "test": "echo 'no tests written!'",
-    "start": "npm run build && node dist/index.js"
+    "start": "npm run setup && node dist/index.js"
   },
   "dependencies": {
     "apollo-server": "^2.5.0",
