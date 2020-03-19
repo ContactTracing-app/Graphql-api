@@ -1,6 +1,11 @@
 const gql = String.raw;
 
 export const typeDefs = gql`
+  input ContactWithInput {
+    when: String!
+    tMinus: Int!
+  }
+
   type Person {
     _id: ID!
     uid: ID!
@@ -17,14 +22,15 @@ export const typeDefs = gql`
         """
       )
     connectsTo: [Person] @relation(name: "CONNECTS_TO", direction: "OUT")
-    # test(input: LogContactInput): String!
-    #   @cypher(
-    #     statement: """
-    #     WITH $input.yyyy + '-' + $input.mm + '-' + $input.dd AS dateFormat
-    #     WITH date(dateFormat) AS logDate, dateFormat
-    #     RETURN dateFormat
-    #     """
-    #   )
+    contactWith(input: ContactWithInput!): [Contact]!
+      @cypher(
+        statement: """
+        WITH date($input.when) - duration({days: $input.tMinus}) AS tMinus7d
+        MATCH p=(this)-[:ON_DAY]->(d:PersonDay)-[:HAD_CONTACT]->(c:Contact)
+        WHERE d.date > tMinus7d
+        RETURN c
+        """
+      )
   }
 
   type Contact {
@@ -46,7 +52,7 @@ export const typeDefs = gql`
   }
 
   type Mutation {
-    logContact(input: LogContactInput): Contact
+    logContact(input: LogContactInput!): Contact
       @cypher(
         statement: """
         WITH apoc.text.join([$input.yyyy, $input.mm, $input.dd], '-') AS dateFormat
