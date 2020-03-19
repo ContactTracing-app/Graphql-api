@@ -48,14 +48,14 @@ export default class App {
       resolvers
     });
 
-    const schemaWithMiddleware = applyMiddleware(schema, permissions);
-
     // Add auto-generated mutations
-    const augmentedSchema = augmentSchema(schemaWithMiddleware, {
+    const augmentedSchema = augmentSchema(schema, {
       query: {
         exclude: ['LogContactPayload']
       }
     });
+
+    const schemaWithMiddleware = applyMiddleware(augmentedSchema, permissions);
 
     const driver = neo4j.driver(
       process.env.NEO4J_URI || 'bolt://localhost:7687',
@@ -68,7 +68,7 @@ export default class App {
 
     this.app = express();
     this.server = new ApolloServer({
-      schema: augmentedSchema,
+      schema: schemaWithMiddleware,
       // inject the request object into the context to support middleware
       // inject the Neo4j driver instance to handle database call
       context: ({ req }): Context => {

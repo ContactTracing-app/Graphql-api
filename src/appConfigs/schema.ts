@@ -4,7 +4,6 @@ export const typeDefs = gql`
   type Person {
     _id: ID!
     uid: ID!
-    updatedAt: DateTime!
     isInfected: Boolean!
       @cypher(
         statement: """
@@ -47,29 +46,21 @@ export const typeDefs = gql`
   }
 
   type Mutation {
-    setIsInfected(input: UpdatePersonInput): Person
+    logContact(input: LogContactInput): Contact
       @cypher(
         statement: """
-        MATCH (p:Person {uid: $input.uid})
-
-        RETURN p
-        """
-      )
-    LogContact(input: LogContactInput): Contact
-      @cypher(
-        statement: """
-        WITH $input.yyyy + '-' + $input.mm + '-' + $input.dd AS dateFormat
+        WITH apoc.text.join([$input.yyyy, $input.mm, $input.dd], '-') AS dateFormat
         WITH date(dateFormat) AS logDate, dateFormat
-        WITH $input.fromUid + '_' + dateFormat AS fromDayId, dateFormat, logDate
-        WITH $input.toUid + '_' + dateFormat AS toDayId, fromDayId, logDate, dateFormat
-        MERGE (fromDay:PersonDay { id: fromDayId })
+        WITH apoc.text.join([$input.fromUid, dateFormat], '-') AS fromDayId, dateFormat, logDate
+        WITH apoc.text.join([$input.toUid, dateFormat], '-') AS toDayId, fromDayId, logDate, dateFormat
+        MERGE (fromDay:PersonDay { id: fromDayId, date: logDate })
         MERGE (from:Person {uid: $input.fromUid})
         MERGE (fromDay)<-[:ON_DAY]-(from)
         WITH fromDay, toDayId, logDate, dateFormat
-        MERGE (toDay:PersonDay { id: toDayId })
+        MERGE (toDay:PersonDay { id: toDayId, date: logDate })
         MERGE (to:Person {uid: $input.toUid})
         MERGE (toDay)<-[:ON_DAY]-(to)
-        WITH dateFormat + '_' + $input.fromUid + '_' + $input.toUid AS contactId, fromDay, toDay, logDate
+        WITH apoc.text.join([dateFormat, $input.fromUid, $input.toUid], '_') AS contactId, fromDay, toDay, logDate
         MERGE (fromDay)-[:HAD_CONTACT]->(c:Contact {id: contactId, date: logDate })<-[:HAD_CONTACT]-(toDay)
         RETURN c
         """
