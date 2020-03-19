@@ -52,6 +52,14 @@ export default class App {
     const augmentedSchema = augmentSchema(schema, {
       query: {
         exclude: ['LogContactPayload']
+      },
+      mutation: {
+        exclude: [
+          'CreatePerson',
+          'CreatePersonDay',
+          'DeletePersonDay',
+          'UpdatePersonDay'
+        ]
       }
     });
 
