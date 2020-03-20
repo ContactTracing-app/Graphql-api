@@ -65,24 +65,56 @@ export const typeDefs = gql`
     CreatePerson(input: CreatePersonInput!): Person
       @cypher(
         statement: """
-        CREATE (p:Person {uid: $input.uid})-[:HAS_CONTACT_LOG]->(listHead:Log { id: $input.uid })
+        WITH apoc.text.join(['log', $input.uid], '_') AS fromLogId
+        CREATE (p:Person {uid: $input.uid})-[:HAS_CONTACT_LOG]->(listHead:Log { id: fromLogId })
         RETURN p
         """
       )
 
-    logContact(input: LogContactInput!): LogEntry!
+    LogContact(input: LogContactInput!): LogEntry
       @cypher(
         statement: """
+        // Globals
         WITH apoc.text.join([$input.yyyy, $input.mm, $input.dd], '-') AS dateFormat
         WITH date(dateFormat) AS logDate, dateFormat
-        WITH apoc.text.join([$input.fromUid, dateFormat], '_') AS fromDayId, logDate, dateFormat
-        WITH apoc.text.join([$input.toUid, dateFormat], '_') AS toDayId, fromDayId, logDate, dateFormat
-        MERGE (fromLe:LogEntry { id: fromDayId })
-        MERGE (toLe:LogEntry { id: toDayId })
-        MERGE (fromLe)-[:HAD_CONTACT]->(c:Contact { date: logDate })<-[:HAD_CONTACT]-(toLe)
 
-        MATCH ()
-        return fromLe
+        // Logs
+        WITH apoc.text.join(['log', $input.fromUid], '_') AS fromLogId, logDate, dateFormat
+        WITH apoc.text.join(['log', $input.toUid], '_') AS toLogId, fromLogId, logDate, dateFormat
+        MATCH (fromLog:Log {id: fromLogId})
+        MATCH (toLog:Log {id: toLogId})
+
+        // Entries
+        WITH apoc.text.join(['entry', $input.fromUid, dateFormat], '_') AS fromEntryId, fromLog, toLog, logDate, dateFormat
+        WITH apoc.text.join(['entry', $input.toUid, dateFormat], '_') AS toEntryId, fromEntryId, fromLog, toLog, logDate
+        MERGE (fromEntry {id: fromEntryId, date: logDate})
+        MERGE (toEntry {id: toEntryId, date: logDate})
+
+        // Lock
+        WITH fromLog, toLog, fromEntry, toEntry
+        CALL apoc.lock.nodes([fromLog, toLog, fromEntry, toEntry])
+
+        // From Chain
+        MATCH (fromLog)-[:PREV_ENTRY*]->(fromE1)-[oldLinkFrom:PREV_ENTRY]->(fromE2:LogEntry)
+        WHERE fromE2.date < fromEntry.date
+        MERGE (fromE1)-[:PREV_ENTRY]->(fromEntry)
+        MERGE (fromEntry)-[:PREV_ENTRY]->(fromE2)
+        DELETE oldLinkFrom
+
+        WITH toLog, toEntry, fromEntry
+
+        // To Chain
+        MATCH (toLog)-[:PREV_ENTRY*]->(toE1)-[oldLinkTo:PREV_ENTRY]->(toE2:LogEntry)
+        WHERE toE2.date < toEntry.date
+        MERGE (toE1)-[:PREV_ENTRY]->(toEntry)
+        MERGE (toEntry)-[:PREV_ENTRY]->(toE2)
+        DELETE oldLinkTo
+
+        // Contact
+        MERGE (fromEntry)-[:HAD_CONTACT]->(c:Contact)<-[:HAD_CONTACT]-(toEntry)
+
+        // End
+        RETURN fromEntry
         """
       )
   }
