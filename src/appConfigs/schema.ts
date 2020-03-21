@@ -76,7 +76,31 @@ export const typeDefs = gql`
     uid: ID!
   }
 
+  input PersonVisibilityInput {
+    uid: ID!
+  }
+
   type Mutation {
+    HidePerson(input: PersonVisibilityInput!): Person
+      @cypher(
+        statement: """
+        MATCH (n:Person { uid: $input.uid })
+        CALL apoc.create.removeLabels(n, ['Person']) YIELD node AS r
+        CALL apoc.create.addLabels(r, ['PersonHidden']) YIELD node
+        RETURN node
+        """
+      )
+
+    ShowPerson(input: PersonVisibilityInput!): Person
+      @cypher(
+        statement: """
+        MATCH (n:Person { uid: $input.uid })
+        CALL apoc.create.removeLabels(n, ['PersonHidden']) YIELD node AS r
+        CALL apoc.create.addLabels(r, ['Person']) YIELD node
+        RETURN node
+        """
+      )
+
     CreatePerson(input: CreatePersonInput!): Person
       @cypher(
         statement: """
