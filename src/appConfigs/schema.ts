@@ -31,7 +31,7 @@ export const typeDefs = gql`
         RETURN e
         """
       )
-    recentContactWith: [ContactWith]
+    recentContactWith: [Person]
       @cypher(
         statement: """
         WITH apoc.text.join(['log', this.uid], '_') AS logId
@@ -40,23 +40,10 @@ export const typeDefs = gql`
         WHERE entry.date > since
           AND TYPE(r1) STARTS WITH 'HAS_ENTRY_ON'
           AND TYPE(r2) STARTS WITH 'HAS_ENTRY_ON'
-        WITH entry.date AS date, p
-        RETURN {
-          date: date,
-          person: p {
-             _id: ID(p),
-             uid: p.uid
-            }
-          }
-        ORDER BY date DESC
+        RETURN p
+        ORDER BY entry.date DESC
         """
       )
-  }
-
-  type ContactWith {
-    person: Person
-    date: DateTime!
-    # contactWithSince
   }
 
   input UpdatePersonInput {
