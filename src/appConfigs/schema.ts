@@ -28,20 +28,15 @@ export const typeDefs = gql`
         RETURN p
         """
       )
-    contactWith(input: ContactWithInput!): [Contact]!
+    logEntries: [LogEntry]!
       @cypher(
         statement: """
-        WITH date($input.when) - duration({days: $input.tMinus}) AS tMinus7d
-        MATCH p=(this)-[:ON_DAY]->(d:PersonDay)-[:HAD_CONTACT]->(c:Contact)
-        WHERE d.date > tMinus7d
-        RETURN c
+        WITH apoc.text.join(['log', 'michele'], '_') AS logId
+        MATCH (log:Log {id: logId})-[r]-(e:LogEntry)
+        WHERE TYPE(r) STARTS WITH 'HAS_ENTRY_ON'
+        RETURN e
         """
       )
-  }
-
-  type Contact {
-    _id: ID!
-    date: Date!
   }
 
   input UpdatePersonInput {
@@ -60,7 +55,6 @@ export const typeDefs = gql`
   type LogEntry {
     id: ID!
     date: DateTime!
-    contact: [Contact]! @relation(name: "HAD_CONTACT", direction: "OUT")
   }
 
   input CreatePersonInput {
