@@ -71,8 +71,8 @@ export const typeDefs = gql`
       @cypher(
         statement: """
         MATCH (n:Person { uid: $input.uid })
-        CALL apoc.create.removeLabels(n, ['Person']) YIELD node AS r
         CALL apoc.create.addLabels(r, ['PersonHidden']) YIELD node
+        CALL apoc.create.removeLabels(n, ['Person']) YIELD node AS r
         RETURN node
         """
       )
@@ -81,8 +81,8 @@ export const typeDefs = gql`
       @cypher(
         statement: """
         MATCH (n:Person { uid: $input.uid })
-        CALL apoc.create.removeLabels(n, ['PersonHidden']) YIELD node AS r
         CALL apoc.create.addLabels(r, ['Person']) YIELD node
+        CALL apoc.create.removeLabels(n, ['PersonHidden']) YIELD node AS r
         RETURN node
         """
       )
