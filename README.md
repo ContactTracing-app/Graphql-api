@@ -1,23 +1,18 @@
+# Graphql API for contact-tracing.app
+
+My partner and I are frantically building this app to help people keep their loved ones safe during this COVID-19 outbreak.
+
+Plan: store a graph of personal contact. Notify your family and friends is you fall ill.
+
 # Steps to run the compile and run the server
 
+- Clone the repo
+- Copy `.env.example` to `.env` (same directly) and edit appropriately
 - Run `yarn` or `npm install`
-- Run `yarn build` or `npm run build`
-- Run `yarn start` or `npm run start`
+- Run `yarn run build && yarn start` or `npm run build && npm start`
 
-## To run using docker
+# Development
 
-- Run `docker-compose -f docker-compose.yml up`
+I haven't had time to set-up auto re-load, so for now you've got to kill the process and restart.
 
-## To run mongo as a container
-
-- Run `docker-compose -f docker-compose-resources.yml up`
-  
-## Generate documentation for code. (uses tsconfig.json file present in your project for generating/serving docs)
-
-- Run `yarn generate-docs` or `npm run generate-docs`
-- Run `yarn serve-docs` or `npm run serve-docs` to host the generated documentation
-
-## Things to Remeber / Things to Do
-
-- While coding, please follow proper code-commenting practices.
-- **[Can refer and follow standards defined by Microsoft for the same](https://github.com/microsoft/tsdoc)**
+When the app runs, launch in the browser. Make sure to add an `Authorization Bearer <YOUR_AUTH_TOKEN_HERE>` header or you'll get a "Not authorised" error.
