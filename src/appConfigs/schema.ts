@@ -21,21 +21,22 @@ export const typeDefs = gql`
         RETURN apoc.label.exists(this, 'QuarantinedPerson')
         """
       )
-    connectsTo: [Person] @relation(name: "CONNECTS_TO", direction: "OUT")
-    contactWith(input: ContactWithInput!): [Contact]!
+    connections: [Person]
       @cypher(
         statement: """
-        WITH date($input.when) - duration({days: $input.tMinus}) AS tMinus7d
-        MATCH p=(this)-[:ON_DAY]->(d:PersonDay)-[:HAD_CONTACT]->(c:Contact)
-        WHERE d.date > tMinus7d
-        RETURN c
+        MATCH (this)-[:KNOWS]-(p:Person)
+        RETURN p
         """
       )
-  }
-
-  type Contact {
-    _id: ID!
-    date: Date!
+    logEntries: [LogEntry]!
+      @cypher(
+        statement: """
+        WITH apoc.text.join(['log', 'michele'], '_') AS logId
+        MATCH (log:Log {id: logId})-[r]-(e:LogEntry)
+        WHERE TYPE(r) STARTS WITH 'HAS_ENTRY_ON'
+        RETURN e
+        """
+      )
   }
 
   input UpdatePersonInput {
@@ -54,7 +55,6 @@ export const typeDefs = gql`
   type LogEntry {
     id: ID!
     date: DateTime!
-    contact: [Contact]! @relation(name: "HAD_CONTACT", direction: "OUT")
   }
 
   input CreatePersonInput {
@@ -74,13 +74,17 @@ export const typeDefs = gql`
         """
       )
 
-    LogContact(input: LogContactInput!): Boolean
+    LogContact(input: LogContactInput!): LogEntry
       @cypher(
         statement: """
         // Globals
         WITH apoc.text.join([$input.yyyy, $input.mm, $input.dd], '-') AS dateFormat
         WITH date(dateFormat) AS logDate, dateFormat
 
+        // Higher
+        MATCH (p1:Person {uid: $input.fromUid})
+        MATCH (p2:Person {uid: $input.toUid})
+        MERGE (p1)-[:KNOWS]-(p2)
 
         // Logs
         WITH apoc.text.join(['log', $input.fromUid], '_') AS fromLogId, logDate, dateFormat
@@ -107,43 +111,18 @@ export const typeDefs = gql`
         ON CREATE SET toEntry.date = logDate
         WITH toEntry, fromEntry, fromLog, toLog, logDate, dateFormat
 
-
         // Lock
         WITH fromLog, toLog, fromEntry, toEntry, dateFormat
-        CALL apoc.lock.nodes([fromLog, toLog])
+        CALL apoc.lock.nodes([fromLog, toLog, fromEntry, toEntry])
+        WITH apoc.text.join(['HAS_ENTRY_ON', dateFormat], '_') AS relEntry, fromLog, toLog, fromEntry, toEntry, dateFormat
 
-        RETURN true
+        CALL apoc.merge.relationship(fromLog, relEntry, NULL, NULL, fromEntry) YIELD rel AS relFrom
+        CALL apoc.merge.relationship(toLog, relEntry, NULL, NULL, toEntry) YIELD rel AS relTo
 
-        MATCH (fromLog)-[:PREV_ENTRY*0..]->(e:LogEntry)
-        // From Chain
-
-        // WHERE e.date > fromEntry.date
-        // WITH apoc.agg.last(e) AS cutStart, fromEntry, toLog, toEntry
-        // MATCH (cutStart:LogEntry)-[link:PREV_ENTRY]->(cutEnd:LogEntry)
-        // FOREACH(ignoreMe IN CASE WHEN cutEnd.id = fromEntry.id THEN [] ELSE [1] END |
-        // MERGE (fromEntry)-[:PREV_ENTRY]->(cutEnd)
-        // )
-        // WITH link, fromEntry, toLog, toEntry
-        // CALL apoc.refactor.to(link, fromEntry) YIELD input
-
-
-
-        // To Chain
-        // MATCH (toLog)-[:PREV_ENTRY*0..]->(e:LogEntry)
-        // WHERE e.date > toEntry.date
-        // WITH apoc.agg.last(e) AS cutStart, toEntry, toLog, fromEntry
-        // MATCH (cutStart:LogEntry)-[link:PREV_ENTRY]->(cutEnd:LogEntry)
-        // FOREACH(ignoreMe IN CASE WHEN cutEnd.id = toEntry.id THEN [] ELSE [1] END |
-        // MERGE (toEntry)-[:PREV_ENTRY]->(cutEnd)
-        // )
-        // WITH link, fromEntry, toLog, toEntry
-        // CALL apoc.refactor.to(link, toEntry) YIELD input
-
-        // Contact
-        // MERGE (fromEntry)-[:MADE_CONTACT_WITH]-(toEntry)
+        MERGE (fromEntry)-[:MADE_CONTACT_WITH]-(toEntry)
 
         // End
-        // RETURN fromEntry
+        RETURN fromEntry
         """
       )
   }
