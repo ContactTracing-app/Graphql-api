@@ -65,8 +65,15 @@ export const typeDefs = gql`
     CreatePerson(input: CreatePersonInput!): Person
       @cypher(
         statement: """
-        WITH apoc.text.join(['log', $input.uid], '_') AS fromLogId
-        CREATE (p:Person {uid: $input.uid})-[:HAS_CONTACT_LOG]->(listHead:Log { id: fromLogId })
+        WITH date() AS now
+        WITH apoc.temporal.format(now, 'YYYY-MM-dd') AS dateFormat, now
+        WITH apoc.text.join(['log', $input.uid], '_') AS logId, dateFormat, now
+        WITH apoc.text.join(['entry', $input.uid, dateFormat], '_') AS entryId, logId, now
+        CREATE (p:Person {uid: $input.uid})
+          -[:HAS_CONTACT_LOG]->(:Log { id: logId })
+          -[:PREV_ENTRY]->(:LogEntry {date: Date('2021-03-20')})
+          -[:PREV_ENTRY]->(:LogEntry {id: entryId, date: now})
+          -[:PREV_ENTRY]->(:LogEntry {date: date('2019-10-01')})
         RETURN p
         """
       )
@@ -87,28 +94,34 @@ export const typeDefs = gql`
         // Entries
         WITH apoc.text.join(['entry', $input.fromUid, dateFormat], '_') AS fromEntryId, fromLog, toLog, logDate, dateFormat
         WITH apoc.text.join(['entry', $input.toUid, dateFormat], '_') AS toEntryId, fromEntryId, fromLog, toLog, logDate
-        MERGE (fromEntry {id: fromEntryId, date: logDate})
-        MERGE (toEntry {id: toEntryId, date: logDate})
+        MERGE (fromEntry:LogEntry {id: fromEntryId, date: logDate})
+        MERGE (toEntry:LogEntry {id: toEntryId, date: logDate})
 
         // Lock
         WITH fromLog, toLog, fromEntry, toEntry
-        CALL apoc.lock.nodes([fromLog, toLog, fromEntry, toEntry])
+        CALL apoc.lock.nodes([fromLog, toLog])
 
         // From Chain
-        MATCH (fromLog)-[:PREV_ENTRY*]->(fromE1)-[oldLinkFrom:PREV_ENTRY]->(fromE2:LogEntry)
-        WHERE fromE2.date < fromEntry.date
-        MERGE (fromE1)-[:PREV_ENTRY]->(fromEntry)
-        MERGE (fromEntry)-[:PREV_ENTRY]->(fromE2)
-        DELETE oldLinkFrom
-
-        WITH toLog, toEntry, fromEntry
+        MATCH (fromLog)-[:PREV_ENTRY*0..]->(e:LogEntry)
+        WHERE e.date > fromEntry.date
+        WITH apoc.agg.last(e) AS cutStart, fromEntry, toLog, toEntry
+        MATCH (cutStart:LogEntry)-[link:PREV_ENTRY]->(cutEnd:LogEntry)
+        FOREACH(ignoreMe IN CASE WHEN cutEnd.id = fromEntry.id THEN [] ELSE [1] END |
+          MERGE (fromEntry)-[:PREV_ENTRY]->(cutEnd)
+        )
+        WITH link, fromEntry, toLog, toEntry
+        CALL apoc.refactor.to(link, fromEntry) YIELD input
 
         // To Chain
-        MATCH (toLog)-[:PREV_ENTRY*]->(toE1)-[oldLinkTo:PREV_ENTRY]->(toE2:LogEntry)
-        WHERE toE2.date < toEntry.date
-        MERGE (toE1)-[:PREV_ENTRY]->(toEntry)
-        MERGE (toEntry)-[:PREV_ENTRY]->(toE2)
-        DELETE oldLinkTo
+        MATCH (toLog)-[:PREV_ENTRY*0..]->(e:LogEntry)
+        WHERE e.date > toEntry.date
+        WITH apoc.agg.last(e) AS cutStart, toEntry, toLog, fromEntry
+        MATCH (cutStart:LogEntry)-[link:PREV_ENTRY]->(cutEnd:LogEntry)
+        FOREACH(ignoreMe IN CASE WHEN cutEnd.id = toEntry.id THEN [] ELSE [1] END |
+          MERGE (toEntry)-[:PREV_ENTRY]->(cutEnd)
+        )
+        WITH link, fromEntry, toLog, toEntry
+        CALL apoc.refactor.to(link, toEntry) YIELD input
 
         // Contact
         MERGE (fromEntry)-[:HAD_CONTACT]->(c:Contact)<-[:HAD_CONTACT]-(toEntry)
@@ -125,20 +138,52 @@ export const resolvers = {
 };
 
 /*
-// Update the Chain
+// Globals
+        WITH apoc.text.join([$input.yyyy, $input.mm, $input.dd], '-') AS dateFormat
+        WITH date(dateFormat) AS logDate, dateFormat
 
-        // MATCH p = (lh:ContactLog {id: $input.fromUid})-[:PREV_LOG_ENTRY*]->(prevFromLogEntries)
-        WHERE NONE (le IN nodes(p) WHERE COALESCE(tx.date, datetime()) <= logDate)
+        // Logs
+        WITH apoc.text.join(['log', $input.fromUid], '_') AS fromLogId, logDate, dateFormat
+        WITH apoc.text.join(['log', $input.toUid], '_') AS toLogId, fromLogId, logDate, dateFormat
+        MATCH (fromLog:Log {id: fromLogId})
+        MATCH (toLog:Log {id: toLogId})
 
+        // Entries
+        WITH apoc.text.join(['entry', $input.fromUid, dateFormat], '_') AS fromEntryId, fromLog, toLog, logDate, dateFormat
+        WITH apoc.text.join(['entry', $input.toUid, dateFormat], '_') AS toEntryId, fromEntryId, fromLog, toLog, logDate
+        MERGE (fromEntry:LogEntry {id: fromEntryId, date: logDate})
+        MERGE (toEntry:LogEntry {id: toEntryId, date: logDate})
 
+        // Lock
+        WITH fromLog, toLog, fromEntry, toEntry
+        CALL apoc.lock.nodes([fromLog, toLog, fromEntry, toEntry])
 
+        // From Chain
+        MATCH (fromLog)-[:PREV_ENTRY*0..]->(e:LogEntry)
+        WHERE e.date > fromEntry.date
+        WITH apoc.agg.last(e) AS cutStart, fromEntry, toLog, toEntry
+        OPTIONAL MATCH (cutStart:LogEntry)-[link:PREV_ENTRY]->(cutEnd:LogEntry)
+        WHERE cutEnd.id <> fromEntry.id
+        FOREACH(ignoreMe IN CASE WHEN cutEnd IS NOT NULL THEN [1] ELSE [] END |
+            MERGE (fromEntry)-[:PREV_ENTRY]->(cutEnd)
+        )
+        WITH link, fromEntry, toLog, toEntry
+        CALL apoc.refactor.to(link, fromEntry) YIELD input
 
-        # WITH fromDay, toDayId, logDate, dateFormat
-        # MERGE (toDay:PersonDay { id: toDayId, date: logDate })
-        # MERGE (to:Person {uid: $input.toUid})
-        # MERGE (toDay)<-[:ON_DAY]-(to)
-        # WITH apoc.text.join([dateFormat, $input.fromUid, $input.toUid], '_') AS contactId, fromDay, toDay, logDate
-        # MERGE (fromDay)-[:HAD_CONTACT]->(c:Contact {id: contactId, date: logDate })<-[:HAD_CONTACT]-(toDay)
-        # RETURN c
+        // To Chain
+        MATCH (toLog)-[:PREV_ENTRY*0..]->(e:LogEntry)
+        WHERE e.date > toEntry.date
+        WITH apoc.agg.last(e) AS cutStart, toEntry, fromEntry
+        OPTIONAL MATCH (cutStart:LogEntry)-[link:PREV_ENTRY]->(cutEnd:LogEntry)
+        WHERE cutEnd.id <> toEntry.id
+        FOREACH(ignoreMe IN CASE WHEN cutEnd IS NOT NULL THEN [1] ELSE [] END |
+            MERGE (toEntry)-[:PREV_ENTRY]->(cutEnd)
+        )
+        WITH link, toEntry, fromEntry
+        CALL apoc.refactor.to(link, toEntry) YIELD input AS toInput
 
-        */
+        // Contact
+        MERGE (fromEntry)-[:HAD_CONTACT]->(c:Contact)<-[:HAD_CONTACT]-(toEntry)
+
+        // End
+        RETURN fromEntry        */
