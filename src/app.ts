@@ -54,7 +54,16 @@ export default class App {
         exclude: ['LogContactPayload']
       },
       mutation: {
+<<<<<<< HEAD
         exclude: ['CreatePersonDay', 'DeletePersonDay', 'UpdatePersonDay']
+=======
+        exclude: [
+          'CreatePerson',
+          'CreatePersonDay',
+          'DeletePersonDay',
+          'UpdatePersonDay'
+        ]
+>>>>>>> refactor/linkedin-list-postprocess
       }
     });
 
