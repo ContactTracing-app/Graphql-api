@@ -59,6 +59,14 @@ export const typeDefs = gql`
     dd: String!
   }
 
+  input UnlogContactInput {
+    fromUid: ID!
+    toUid: ID!
+    yyyy: String!
+    mm: String!
+    dd: String!
+  }
+
   type LogEntry {
     id: ID!
     date: DateTime!
@@ -110,6 +118,22 @@ export const typeDefs = gql`
         CREATE (p:Person {uid: $input.uid})-[:HAS_CONTACT_LOG]->(log:Log { id: logId })
         SET log.createdAt = now, log.updatedAt = now
         RETURN p
+        """
+      )
+
+    UnlogContact(input: UnlogContactInput!): LogEntry
+      @cypher(
+        statement: """
+        WITH apoc.text.join([$input.yyyy, $input.mm, $input.dd], '-') AS dateFormat
+        WITH date(dateFormat) AS logDate, dateFormat
+
+        WITH apoc.text.join(['entry', $input.fromUid, dateFormat], '_') AS fromEntryId, logDate, dateFormat
+        WITH apoc.text.join(['entry', $input.toUid, dateFormat], '_') AS toEntryId, fromEntryId, logDate, dateFormat
+
+        MATCH (fromEntry:LogEntry {id: fromEntryId})-[c:MADE_CONTACT_WITH]-(toEntry:LogEntry {id: toEntryId})
+        DELETE c
+
+        RETURN fromEntry
         """
       )
 
