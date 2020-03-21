@@ -93,8 +93,8 @@ export const typeDefs = gql`
         WITH date() AS now
         WITH apoc.temporal.format(now, 'YYYY-MM-dd') AS dateFormat, now
         WITH apoc.text.join(['log', $input.uid], '_') AS logId, dateFormat, now
-        CREATE (p:Person {uid: $input.uid})-[:HAS_CONTACT_LOG]->(log:Log { id: logId })
-        SET log.createdAt = now, log.updatedAt = now
+        CREATE (p:Person { uid: $input.uid })-[:HAS_CONTACT_LOG]->(log:Log { id: logId })
+        SET p.isInfected = false, p.isInQuarantine = false, log.createdAt = now, log.updatedAt = now
         RETURN p
         """
       )
@@ -123,9 +123,7 @@ export const typeDefs = gql`
         WITH date(dateFormat) AS logDate, dateFormat
 
         // Higher
-        MATCH (p1:Person {uid: $input.fromUid})
-        MATCH (p2:Person {uid: $input.toUid})
-        MERGE (p1)-[:KNOWS]-(p2)
+        MERGE (p1:Person {uid: $input.fromUid})-[:KNOWS]-(p2:Person {uid: $input.toUid})
 
         // Logs
         WITH apoc.text.join(['log', $input.fromUid], '_') AS fromLogId, logDate, dateFormat
@@ -138,7 +136,6 @@ export const typeDefs = gql`
         MATCH (toLog:Log {id: toLogId})
         SET toLog.updatedAt = logDate
         WITH fromLog, toLog, logDate, dateFormat
-
 
         // Entries
         WITH apoc.text.join(['entry', $input.fromUid, dateFormat], '_') AS fromEntryId, fromLog, toLog, logDate, dateFormat
