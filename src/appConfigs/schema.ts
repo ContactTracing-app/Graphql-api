@@ -74,7 +74,7 @@ export const typeDefs = gql`
         """
       )
 
-    LogContact(input: LogContactInput!): Boolean
+    LogContact(input: LogContactInput!): LogEntry
       @cypher(
         statement: """
         // Globals
@@ -107,43 +107,18 @@ export const typeDefs = gql`
         ON CREATE SET toEntry.date = logDate
         WITH toEntry, fromEntry, fromLog, toLog, logDate, dateFormat
 
-
         // Lock
         WITH fromLog, toLog, fromEntry, toEntry, dateFormat
-        CALL apoc.lock.nodes([fromLog, toLog])
+        CALL apoc.lock.nodes([fromLog, toLog, fromEntry, toEntry])
+        WITH apoc.text.join(['HAS_ENTRY_ON', dateFormat], '_') AS relEntry, fromLog, toLog, fromEntry, toEntry, dateFormat
 
-        RETURN true
+        CALL apoc.merge.relationship(fromLog, relEntry, NULL, NULL, fromEntry) YIELD rel AS relFrom
+        CALL apoc.merge.relationship(toLog, relEntry, NULL, NULL, toEntry) YIELD rel AS relTo
 
-        MATCH (fromLog)-[:PREV_ENTRY*0..]->(e:LogEntry)
-        // From Chain
-
-        // WHERE e.date > fromEntry.date
-        // WITH apoc.agg.last(e) AS cutStart, fromEntry, toLog, toEntry
-        // MATCH (cutStart:LogEntry)-[link:PREV_ENTRY]->(cutEnd:LogEntry)
-        // FOREACH(ignoreMe IN CASE WHEN cutEnd.id = fromEntry.id THEN [] ELSE [1] END |
-        // MERGE (fromEntry)-[:PREV_ENTRY]->(cutEnd)
-        // )
-        // WITH link, fromEntry, toLog, toEntry
-        // CALL apoc.refactor.to(link, fromEntry) YIELD input
-
-
-
-        // To Chain
-        // MATCH (toLog)-[:PREV_ENTRY*0..]->(e:LogEntry)
-        // WHERE e.date > toEntry.date
-        // WITH apoc.agg.last(e) AS cutStart, toEntry, toLog, fromEntry
-        // MATCH (cutStart:LogEntry)-[link:PREV_ENTRY]->(cutEnd:LogEntry)
-        // FOREACH(ignoreMe IN CASE WHEN cutEnd.id = toEntry.id THEN [] ELSE [1] END |
-        // MERGE (toEntry)-[:PREV_ENTRY]->(cutEnd)
-        // )
-        // WITH link, fromEntry, toLog, toEntry
-        // CALL apoc.refactor.to(link, toEntry) YIELD input
-
-        // Contact
-        // MERGE (fromEntry)-[:MADE_CONTACT_WITH]-(toEntry)
+        MERGE (fromEntry)-[:MADE_CONTACT_WITH]-(toEntry)
 
         // End
-        // RETURN fromEntry
+        RETURN fromEntry
         """
       )
   }
