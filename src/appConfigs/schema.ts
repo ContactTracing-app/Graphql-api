@@ -9,12 +9,6 @@ export const typeDefs = gql`
     uid: ID!
   }
 
-  input UpdatePersonInput {
-    uid: ID!
-    isInfected: Boolean
-    isInQuarantine: Boolean
-  }
-
   input LogContactInput {
     fromUid: ID!
     toUid: ID!
