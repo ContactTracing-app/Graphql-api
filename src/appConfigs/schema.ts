@@ -68,66 +68,82 @@ export const typeDefs = gql`
         WITH date() AS now
         WITH apoc.temporal.format(now, 'YYYY-MM-dd') AS dateFormat, now
         WITH apoc.text.join(['log', $input.uid], '_') AS logId, dateFormat, now
-        WITH apoc.text.join(['entry', $input.uid, dateFormat], '_') AS entryId, logId, now
-        CREATE (p:Person {uid: $input.uid})
-          -[:HAS_CONTACT_LOG]->(:Log { id: logId })
-          -[:PREV_ENTRY]->(:LogEntry {date: Date('2021-03-20')})
-          -[:PREV_ENTRY]->(:LogEntry {id: entryId, date: now})
-          -[:PREV_ENTRY]->(:LogEntry {date: date('2019-10-01')})
+        CREATE (p:Person {uid: $input.uid})-[:HAS_CONTACT_LOG]->(log:Log { id: logId })
+        SET log.createdAt = now, log.updatedAt = now
         RETURN p
         """
       )
 
-    LogContact(input: LogContactInput!): LogEntry
+    LogContact(input: LogContactInput!): Boolean
       @cypher(
         statement: """
         // Globals
         WITH apoc.text.join([$input.yyyy, $input.mm, $input.dd], '-') AS dateFormat
         WITH date(dateFormat) AS logDate, dateFormat
 
+
         // Logs
         WITH apoc.text.join(['log', $input.fromUid], '_') AS fromLogId, logDate, dateFormat
         WITH apoc.text.join(['log', $input.toUid], '_') AS toLogId, fromLogId, logDate, dateFormat
+
         MATCH (fromLog:Log {id: fromLogId})
+        SET fromLog.updatedAt = logDate
+        WITH toLogId, fromLog, logDate, dateFormat
+
         MATCH (toLog:Log {id: toLogId})
+        SET toLog.updatedAt = logDate
+        WITH fromLog, toLog, logDate, dateFormat
+
 
         // Entries
         WITH apoc.text.join(['entry', $input.fromUid, dateFormat], '_') AS fromEntryId, fromLog, toLog, logDate, dateFormat
-        WITH apoc.text.join(['entry', $input.toUid, dateFormat], '_') AS toEntryId, fromEntryId, fromLog, toLog, logDate
-        MERGE (fromEntry:LogEntry {id: fromEntryId, date: logDate})
-        MERGE (toEntry:LogEntry {id: toEntryId, date: logDate})
+        WITH apoc.text.join(['entry', $input.toUid, dateFormat], '_') AS toEntryId, fromEntryId, fromLog, toLog, logDate, dateFormat
+
+        MERGE (fromEntry:LogEntry {id: fromEntryId})
+        ON CREATE SET fromEntry.date = logDate
+        WITH fromEntry, toEntryId, fromLog, toLog, logDate, dateFormat
+
+        MERGE (toEntry:LogEntry {id: toEntryId})
+        ON CREATE SET toEntry.date = logDate
+        WITH toEntry, fromEntry, fromLog, toLog, logDate, dateFormat
+
 
         // Lock
-        WITH fromLog, toLog, fromEntry, toEntry
+        WITH fromLog, toLog, fromEntry, toEntry, dateFormat
         CALL apoc.lock.nodes([fromLog, toLog])
 
-        // From Chain
+        RETURN true
+
         MATCH (fromLog)-[:PREV_ENTRY*0..]->(e:LogEntry)
-        WHERE e.date > fromEntry.date
-        WITH apoc.agg.last(e) AS cutStart, fromEntry, toLog, toEntry
-        MATCH (cutStart:LogEntry)-[link:PREV_ENTRY]->(cutEnd:LogEntry)
-        FOREACH(ignoreMe IN CASE WHEN cutEnd.id = fromEntry.id THEN [] ELSE [1] END |
-          MERGE (fromEntry)-[:PREV_ENTRY]->(cutEnd)
-        )
-        WITH link, fromEntry, toLog, toEntry
-        CALL apoc.refactor.to(link, fromEntry) YIELD input
+        // From Chain
+
+        // WHERE e.date > fromEntry.date
+        // WITH apoc.agg.last(e) AS cutStart, fromEntry, toLog, toEntry
+        // MATCH (cutStart:LogEntry)-[link:PREV_ENTRY]->(cutEnd:LogEntry)
+        // FOREACH(ignoreMe IN CASE WHEN cutEnd.id = fromEntry.id THEN [] ELSE [1] END |
+        // MERGE (fromEntry)-[:PREV_ENTRY]->(cutEnd)
+        // )
+        // WITH link, fromEntry, toLog, toEntry
+        // CALL apoc.refactor.to(link, fromEntry) YIELD input
+
+
 
         // To Chain
-        MATCH (toLog)-[:PREV_ENTRY*0..]->(e:LogEntry)
-        WHERE e.date > toEntry.date
-        WITH apoc.agg.last(e) AS cutStart, toEntry, toLog, fromEntry
-        MATCH (cutStart:LogEntry)-[link:PREV_ENTRY]->(cutEnd:LogEntry)
-        FOREACH(ignoreMe IN CASE WHEN cutEnd.id = toEntry.id THEN [] ELSE [1] END |
-          MERGE (toEntry)-[:PREV_ENTRY]->(cutEnd)
-        )
-        WITH link, fromEntry, toLog, toEntry
-        CALL apoc.refactor.to(link, toEntry) YIELD input
+        // MATCH (toLog)-[:PREV_ENTRY*0..]->(e:LogEntry)
+        // WHERE e.date > toEntry.date
+        // WITH apoc.agg.last(e) AS cutStart, toEntry, toLog, fromEntry
+        // MATCH (cutStart:LogEntry)-[link:PREV_ENTRY]->(cutEnd:LogEntry)
+        // FOREACH(ignoreMe IN CASE WHEN cutEnd.id = toEntry.id THEN [] ELSE [1] END |
+        // MERGE (toEntry)-[:PREV_ENTRY]->(cutEnd)
+        // )
+        // WITH link, fromEntry, toLog, toEntry
+        // CALL apoc.refactor.to(link, toEntry) YIELD input
 
         // Contact
-        MERGE (fromEntry)-[:HAD_CONTACT]->(c:Contact)<-[:HAD_CONTACT]-(toEntry)
+        // MERGE (fromEntry)-[:MADE_CONTACT_WITH]-(toEntry)
 
         // End
-        RETURN fromEntry
+        // RETURN fromEntry
         """
       )
   }
