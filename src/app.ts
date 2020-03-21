@@ -54,7 +54,14 @@ export default class App {
         exclude: ['LogContactPayload']
       },
       mutation: {
-        exclude: ['CreateLogEntry', 'DeleteLogEntry', 'UpdateLogEntry']
+        exclude: [
+          'CreateContactWith',
+          'DeleteContactWith',
+          'UpdateContactWith',
+          'CreateLogEntry',
+          'DeleteLogEntry',
+          'UpdateLogEntry'
+        ]
       }
     });
 

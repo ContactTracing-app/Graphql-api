@@ -21,13 +21,7 @@ export const typeDefs = gql`
         RETURN apoc.label.exists(this, 'QuarantinedPerson')
         """
       )
-    connections: [Person]
-      @cypher(
-        statement: """
-        MATCH (this)-[:KNOWS]-(p:Person)
-        RETURN p
-        """
-      )
+    connections: [Person] @relation(name: "KNOWS", direction: "BOTH")
     logEntries: [LogEntry]!
       @cypher(
         statement: """
@@ -37,6 +31,32 @@ export const typeDefs = gql`
         RETURN e
         """
       )
+    recentContactWith: [ContactWith]
+      @cypher(
+        statement: """
+        WITH apoc.text.join(['log', this.uid], '_') AS logId
+        WITH date() - duration('P14D') AS since, logId
+        MATCH (log:Log {id: logId})-[r1]->(entry:LogEntry)-[:MADE_CONTACT_WITH]-(otherEntry:LogEntry)<-[r2]-(otherLog:Log)<-[:HAS_CONTACT_LOG]-(p:Person)
+        WHERE entry.date > since
+          AND TYPE(r1) STARTS WITH 'HAS_ENTRY_ON'
+          AND TYPE(r2) STARTS WITH 'HAS_ENTRY_ON'
+        WITH entry.date AS date, p
+        RETURN {
+          date: date,
+          person: p {
+             _id: ID(p),
+             uid: p.uid
+            }
+          }
+        ORDER BY date DESC
+        """
+      )
+  }
+
+  type ContactWith {
+    person: Person
+    date: DateTime!
+    # contactWithSince
   }
 
   input UpdatePersonInput {
@@ -127,7 +147,7 @@ export const typeDefs = gql`
         CALL apoc.merge.relationship(fromLog, relEntry, NULL, NULL, fromEntry) YIELD rel AS relFrom
         CALL apoc.merge.relationship(toLog, relEntry, NULL, NULL, toEntry) YIELD rel AS relTo
 
-        MERGE (fromEntry)-[:MADE_CONTACT_WITH]-(toEntry)
+        MERGE (fromEntry)-[:MADE_CONTACT_WITH]->(toEntry)
 
         // End
         RETURN fromEntry
@@ -139,54 +159,3 @@ export const typeDefs = gql`
 export const resolvers = {
   // root entry point to GraphQL service
 };
-
-/*
-// Globals
-        WITH apoc.text.join([$input.yyyy, $input.mm, $input.dd], '-') AS dateFormat
-        WITH date(dateFormat) AS logDate, dateFormat
-
-        // Logs
-        WITH apoc.text.join(['log', $input.fromUid], '_') AS fromLogId, logDate, dateFormat
-        WITH apoc.text.join(['log', $input.toUid], '_') AS toLogId, fromLogId, logDate, dateFormat
-        MATCH (fromLog:Log {id: fromLogId})
-        MATCH (toLog:Log {id: toLogId})
-
-        // Entries
-        WITH apoc.text.join(['entry', $input.fromUid, dateFormat], '_') AS fromEntryId, fromLog, toLog, logDate, dateFormat
-        WITH apoc.text.join(['entry', $input.toUid, dateFormat], '_') AS toEntryId, fromEntryId, fromLog, toLog, logDate
-        MERGE (fromEntry:LogEntry {id: fromEntryId, date: logDate})
-        MERGE (toEntry:LogEntry {id: toEntryId, date: logDate})
-
-        // Lock
-        WITH fromLog, toLog, fromEntry, toEntry
-        CALL apoc.lock.nodes([fromLog, toLog, fromEntry, toEntry])
-
-        // From Chain
-        MATCH (fromLog)-[:PREV_ENTRY*0..]->(e:LogEntry)
-        WHERE e.date > fromEntry.date
-        WITH apoc.agg.last(e) AS cutStart, fromEntry, toLog, toEntry
-        OPTIONAL MATCH (cutStart:LogEntry)-[link:PREV_ENTRY]->(cutEnd:LogEntry)
-        WHERE cutEnd.id <> fromEntry.id
-        FOREACH(ignoreMe IN CASE WHEN cutEnd IS NOT NULL THEN [1] ELSE [] END |
-            MERGE (fromEntry)-[:PREV_ENTRY]->(cutEnd)
-        )
-        WITH link, fromEntry, toLog, toEntry
-        CALL apoc.refactor.to(link, fromEntry) YIELD input
-
-        // To Chain
-        MATCH (toLog)-[:PREV_ENTRY*0..]->(e:LogEntry)
-        WHERE e.date > toEntry.date
-        WITH apoc.agg.last(e) AS cutStart, toEntry, fromEntry
-        OPTIONAL MATCH (cutStart:LogEntry)-[link:PREV_ENTRY]->(cutEnd:LogEntry)
-        WHERE cutEnd.id <> toEntry.id
-        FOREACH(ignoreMe IN CASE WHEN cutEnd IS NOT NULL THEN [1] ELSE [] END |
-            MERGE (toEntry)-[:PREV_ENTRY]->(cutEnd)
-        )
-        WITH link, toEntry, fromEntry
-        CALL apoc.refactor.to(link, toEntry) YIELD input AS toInput
-
-        // Contact
-        MERGE (fromEntry)-[:HAD_CONTACT]->(c:Contact)<-[:HAD_CONTACT]-(toEntry)
-
-        // End
-        RETURN fromEntry        */
