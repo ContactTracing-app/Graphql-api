@@ -55,6 +55,14 @@ export const typeDefs = gql`
   type LogEntry {
     id: ID!
     date: DateTime!
+    contactWith: [Person]!
+      @cypher(
+        statement: """
+        MATCH (this)-[:MADE_CONTACT_WITH]-(e:LogEntry)<-[r]-(:Log)<-[:HAS_CONTACT_LOG]-(p:Person)
+        WHERE TYPE(r) STARTS WITH 'HAS_ENTRY_ON'
+        RETURN p
+        """
+      )
   }
 
   input CreatePersonInput {
@@ -62,18 +70,6 @@ export const typeDefs = gql`
   }
 
   type Mutation {
-    logContact(input: LogContactInput!): Contact
-      @cypher(
-        statement: """
-        WITH date() AS now
-        WITH apoc.temporal.format(now, 'YYYY-MM-dd') AS dateFormat, now
-        WITH apoc.text.join(['log', $input.uid], '_') AS logId, dateFormat, now
-        CREATE (p:Person {uid: $input.uid})-[:HAS_CONTACT_LOG]->(log:Log { id: logId })
-        SET log.createdAt = now, log.updatedAt = now
-        RETURN p
-        """
-      )
-
     LogContact(input: LogContactInput!): LogEntry
       @cypher(
         statement: """
