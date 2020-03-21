@@ -51,17 +51,10 @@ export default class App {
     // Add auto-generated mutations
     const augmentedSchema = augmentSchema(schema, {
       query: {
-        exclude: ['LogContactPayload']
+        exclude: ['LogContactPayload', 'LogEntry']
       },
       mutation: {
-        exclude: [
-          'CreateContactWith',
-          'DeleteContactWith',
-          'UpdateContactWith',
-          'CreateLogEntry',
-          'DeleteLogEntry',
-          'UpdateLogEntry'
-        ]
+        exclude: ['Person', 'LogEntry']
       }
     });
 
