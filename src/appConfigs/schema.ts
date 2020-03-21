@@ -1,26 +1,33 @@
 const gql = String.raw;
 
 export const typeDefs = gql`
-  input ContactWithInput {
-    when: String!
-    tMinus: Int!
+  input CreatePersonInput {
+    uid: ID!
+  }
+
+  input PersonVisibilityInput {
+    uid: ID!
+  }
+
+  input UpdatePersonInput {
+    uid: ID!
+    isInfected: Boolean
+    isInQuarantine: Boolean
+  }
+
+  input LogContactInput {
+    fromUid: ID!
+    toUid: ID!
+    yyyy: String!
+    mm: String!
+    dd: String!
   }
 
   type Person {
     _id: ID!
     uid: ID!
     isInfected: Boolean!
-      @cypher(
-        statement: """
-        RETURN apoc.label.exists(this, 'InfectedPerson')
-        """
-      )
     isInQuarantine: Boolean!
-      @cypher(
-        statement: """
-        RETURN apoc.label.exists(this, 'QuarantinedPerson')
-        """
-      )
     connections: [Person] @relation(name: "KNOWS", direction: "BOTH")
     logEntries: [LogEntry]!
       @cypher(
@@ -46,27 +53,6 @@ export const typeDefs = gql`
       )
   }
 
-  input UpdatePersonInput {
-    uid: ID!
-    isInfected: Boolean!
-  }
-
-  input LogContactInput {
-    fromUid: ID!
-    toUid: ID!
-    yyyy: String!
-    mm: String!
-    dd: String!
-  }
-
-  input UnlogContactInput {
-    fromUid: ID!
-    toUid: ID!
-    yyyy: String!
-    mm: String!
-    dd: String!
-  }
-
   type LogEntry {
     id: ID!
     date: DateTime!
@@ -78,14 +64,6 @@ export const typeDefs = gql`
         RETURN p
         """
       )
-  }
-
-  input CreatePersonInput {
-    uid: ID!
-  }
-
-  input PersonVisibilityInput {
-    uid: ID!
   }
 
   type Mutation {
@@ -121,7 +99,7 @@ export const typeDefs = gql`
         """
       )
 
-    UnlogContact(input: UnlogContactInput!): LogEntry
+    UnlogContact(input: LogContactInput!): LogEntry
       @cypher(
         statement: """
         WITH apoc.text.join([$input.yyyy, $input.mm, $input.dd], '-') AS dateFormat
