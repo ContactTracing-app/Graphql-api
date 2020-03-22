@@ -1,3 +1,6 @@
+import e = require("express");
+import { Integer } from "neo4j-driver";
+
 const gql = String.raw;
 
 export const typeDefs = gql`
@@ -12,6 +15,20 @@ export const typeDefs = gql`
   input CreateKnowsInput {
     fromUid: ID!
     toUid: ID!
+  }
+
+  type ContactWith {
+    uid: ID!
+    met_on: String!
+    risk: String!
+  }
+
+  type ContactWithList {
+    metfriendon: String!
+    friend: ID!
+    friendsfriend: ID!
+    date: DateTime!
+    risk: String!
   }
 
   input LogContactInput {
@@ -43,20 +60,7 @@ export const typeDefs = gql`
         RETURN e
         """
       )
-    recentDirectContacts: [Person]
-      @cypher(
-        statement: """
-        WITH apoc.text.join(['log', this.uid], '_') AS logId
-        WITH date() - duration('P14D') AS since, logId
-        MATCH (log:Log {id: logId})-[r1]->(entry:LogEntry)-[:MADE_CONTACT_WITH]-(otherEntry:LogEntry)<-[r2]-(otherLog:Log)<-[:HAS_CONTACT_LOG]-(p:Person)
-        WHERE entry.date > since
-          AND TYPE(r1) STARTS WITH 'HAS_ENTRY_ON'
-          AND TYPE(r2) STARTS WITH 'HAS_ENTRY_ON'
-        RETURN p
-        ORDER BY otherEntry.date DESC
-        """
-      )
-    recentIndirectContacts: [Person]
+    recentContactWith: [ContactWithList]
       @cypher(
         statement: """
         WITH apoc.text.join(['log', this.uid], '_') AS logId
@@ -72,10 +76,57 @@ export const typeDefs = gql`
                   WHERE entry.date > newdate
                   AND TYPE(r1) STARTS WITH 'HAS_ENTRY_ON'
                   AND TYPE(r2) STARTS WITH 'HAS_ENTRY_ON'
-              RETURN p
+                  RETURN {
+                    metfriendon: newdate,
+                    friend: aP[0].uid,
+                    friendsfriend: p.uid,
+                    date: otherEntry.date, 
+                    risk: \"low\"
+                  }
           ORDER BY otherEntry.date DESC
         """
       )
+    recentDirectContacts: [ContactWith]
+      @cypher(
+          statement: """
+          WITH apoc.text.join(['log', this.uid], '_') AS logId
+          WITH date() - duration('P14D') AS since, logId
+          MATCH (log:Log {id: logId})-[r1]->(entry:LogEntry)-[:MADE_CONTACT_WITH]-(otherEntry:LogEntry)<-[r2]-(otherLog:Log)<-[:HAS_CONTACT_LOG]-(p:Person)
+          WHERE entry.date > since
+            AND TYPE(r1) STARTS WITH 'HAS_ENTRY_ON'
+            AND TYPE(r2) STARTS WITH 'HAS_ENTRY_ON'
+                RETURN {
+                  uid: p.uid,
+                  met_on: entry.date,
+                  risk: \"high\"
+                }
+            ORDER BY otherEntry.date DESC
+          """
+        )
+      recentIndirectContacts: [ContactWith]
+        @cypher(
+          statement: """
+            WITH apoc.text.join(['log', this.uid], '_') AS logId
+            WITH date() - duration('P14D') AS since, logId
+            MATCH (log:Log {id: logId})-[r1]->(entry:LogEntry)-[:MADE_CONTACT_WITH]-(otherEntry:LogEntry)<-[r2]-(otherLog:Log)<-[:HAS_CONTACT_LOG]-(p:Person)
+            WHERE entry.date > since
+              AND TYPE(r1) STARTS WITH 'HAS_ENTRY_ON'
+              AND TYPE(r2) STARTS WITH 'HAS_ENTRY_ON'
+              WITH collect([p,otherEntry]) AS affectedPeople, log As user
+                UNWIND affectedPeople as aP
+                  WITH apoc.text.join(['log', aP[0].uid], '_') AS flogId, aP, user, aP[1].date AS newdate
+                      MATCH (flog:Log {id: flogId})-[r1]->(entry:LogEntry)-[ufm:MADE_CONTACT_WITH]-(otherEntry:LogEntry)<-[r2]-(otherLog:Log)<-[:HAS_CONTACT_LOG]-(p:Person)
+                      WHERE entry.date > newdate
+                      AND TYPE(r1) STARTS WITH 'HAS_ENTRY_ON'
+                      AND TYPE(r2) STARTS WITH 'HAS_ENTRY_ON'
+                  RETURN {
+                    uid: p.uid,
+                    met_on: otherEntry.date,
+                    risk: \"low\"
+                  }
+              ORDER BY otherEntry.date DESC
+            """
+          )
   }
 
   type LogEntry {
@@ -209,4 +260,137 @@ export const typeDefs = gql`
 
 export const resolvers = {
   // root entry point to GraphQL service
+  Person: {
+    recentDirectContacts(obj, params, ctx, resolveInfo) {
+        let rcw = obj.recentDirectContacts;
+        let returnList: {[id: string]: string}[] = [];
+        var meetingDates: { [id: string] : string; } = {};
+        var meetingCount: { [id: string] : number; } = {};
+        let countedFriends: String[] = [];
+        if (rcw) {
+          rcw.forEach(element => {
+            let friend: String = element.uid.toString();
+            try {
+              let eDate = element.met_on["year"]+"-" + element.met_on["month"]+"-"+element.met_on["day"];
+              if (countedFriends.includes(friend) == false) {
+                meetingCount[friend.toString()] = parseInt("1");
+                meetingDates[friend.toString()] = eDate;
+                (countedFriends).push(friend);
+              } else {
+                meetingCount[friend.toString()] += 1;
+                meetingDates[friend.toString()] += "," + eDate;
+              }
+            } catch (error) {
+              let eDate = "";
+              if (countedFriends.includes(friend) == false) {
+                meetingCount[friend.toString()] = parseInt("1");
+                (countedFriends).push(friend);
+              } else {
+                meetingCount[friend.toString()] += 1;
+              }
+            } finally {
+
+            }
+          });
+        }
+        countedFriends.forEach(element => {
+          if (meetingCount[element.toString()] > 1) {
+            (returnList).push({
+              uid: element.toString(),
+              risk: "very high",
+              met_on: meetingDates[element.toString()]
+            });
+          } else {
+            (returnList).push({
+              uid: element.toString(),
+              risk: "high",
+              met_on: meetingDates[element.toString()]
+            });
+          }
+        });
+        return returnList;
+    },
+    recentIndirectContacts(obj, params, ctx, resolveInfo) {
+      let rcw = obj.recentDirectContacts;
+      let returnList: {[id: string]: string}[] = [];
+      var meetingDates: { [id: string] : string; } = {};
+      var meetingCount: { [id: string] : number; } = {};
+      let countedFriends: String[] = [];
+      if (rcw) {
+        rcw.forEach(element => {
+          let friend: String = element.uid.toString();
+          try {
+            let eDate = element.met_on["year"]+"-" + element.met_on["month"]+"-"+element.met_on["day"];
+            if (countedFriends.includes(friend) == false) {
+              meetingCount[friend.toString()] = parseInt("1");
+              meetingDates[friend.toString()] = eDate;
+              (countedFriends).push(friend);
+            } else {
+              meetingCount[friend.toString()] += 1;
+              meetingDates[friend.toString()] += "," + eDate;
+            }
+          } catch (error) {
+            let eDate = "";
+            if (countedFriends.includes(friend) == false) {
+              meetingCount[friend.toString()] = parseInt("1");
+              (countedFriends).push(friend);
+            } else {
+              meetingCount[friend.toString()] += 1;
+            }
+          } finally {
+
+          }
+        });
+      }
+      countedFriends.forEach(element => {
+        if (meetingCount[element.toString()] > 1) {
+          (returnList).push({
+            uid: element.toString(),
+            risk: "high",
+            met_on: meetingDates[element.toString()]
+          });
+        } else {
+          (returnList).push({
+            uid: element.toString(),
+            risk: "low",
+            met_on: meetingDates[element.toString()]
+          });
+        }
+      });
+      return returnList;
+    },
+    recentContactWith(obj, params, ctx, resolveInfo) {
+      let rcw = obj.recentContactWith;
+      let returnList = [];
+      var compObj: { [id: string] : number; } = {};
+      let directcontact = {
+        uid: "none",
+        risk: "high"
+      };
+      let indirectContact = {
+        uid: "none",
+        risk: "low"
+      }
+      let directfriends_highrisk: String[] = [];
+      let directfriends_lowrisk: String[] = [];
+      let directfriends: String[] = [];
+      let indirectfriends: String[] = [];
+      let first: string = "1"
+      if (rcw) {
+        rcw.forEach(element => {
+          let friend: String = element.friend + "-" + element.metfriendon;
+          if (directfriends.includes(friend) == false) {
+            compObj[friend.toString()] = parseInt(first);
+            (directfriends as any).push(friend);
+          } else {
+            compObj[friend.toString()] = parseInt(first) + 1;
+          }
+        });
+      }
+      // console.log(directfriends);
+      // console.log(compObj);
+      return rcw;
+    }
+  }
 };
+
