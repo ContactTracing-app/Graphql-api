@@ -9,6 +9,11 @@ export const typeDefs = gql`
     uid: ID!
   }
 
+  input CreateKnowsInput {
+    fromUid: ID!
+    toUid: ID!
+  }
+
   input LogContactInput {
     fromUid: ID!
     toUid: ID!
@@ -22,7 +27,13 @@ export const typeDefs = gql`
     uid: ID!
     isInfected: Boolean!
     isInQuarantine: Boolean!
-    connections: [Person] @relation(name: "KNOWS", direction: "BOTH")
+    knows: [Person]
+      @cypher(
+        statement: """
+        MATCH (this)-[:KNOWS]-(p:Person)
+        RETURN p
+        """
+      )
     logEntries: [LogEntry]!
       @cypher(
         statement: """
@@ -68,6 +79,20 @@ export const typeDefs = gql`
   }
 
   type Mutation {
+    CreateKnows(input: CreateKnowsInput!): Person
+      @cypher(
+        statement: """
+        WITH [$input.fromUid, $input.toUid] AS ids
+        UNWIND ids AS personId
+        WITH personId ORDER BY personId
+        WITH COLLECT(personId) AS sorted_ids
+        MATCH (a:Person { uid: sorted_ids[0] })
+        MATCH (b:Person { uid: sorted_ids[1] })
+        MERGE (a)-[:KNOWS]->(b)
+        RETURN a
+        """
+      )
+
     HidePerson(input: PersonVisibilityInput!): Person
       @cypher(
         statement: """
