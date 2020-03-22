@@ -1,5 +1,6 @@
 import { rule, shield, or } from 'graphql-shield';
 import { Context } from './app';
+import config from './appConfigs';
 
 export const isAdmin = rule({ cache: 'contextual' })(
   async (_, __, ctx: Context) => {
@@ -16,33 +17,60 @@ export const isAuthenticated = rule({ cache: 'contextual' })(
   }
 );
 
-interface Person {
-  uid: string;
+interface PersonArgs {
+  uid?: string;
 }
-export const isOwner = rule({
-  cache: 'contextual',
-  fragment: 'fragment PersonUid on Person { uid }'
-})(async (Person: Person, _, ctx: Context) => {
-  console.log(Person);
-  if (ctx.user) {
-    return Person.uid === ctx.user.uid;
+export const isPersonOwner = rule({
+  cache: 'strict'
+})(async (_, args: PersonArgs, ctx: Context) => {
+  const { uid } = args;
+
+  if (!ctx.user) {
+    return false;
   }
-  return false;
+
+  if (!uid) {
+    return false;
+  }
+
+  return uid === ctx.user.uid;
+});
+
+interface LogContactArgs {
+  input: {
+    fromUid: string;
+  };
+}
+
+// You can only Log your own entries
+export const isContactLogger = rule({
+  cache: 'strict'
+})(async (_, args: LogContactArgs, ctx: Context) => {
+  const {
+    input: { fromUid }
+  } = args;
+
+  if (!ctx.user) {
+    return false;
+  }
+
+  return fromUid === ctx.user.uid;
 });
 
 export default shield(
   {
     Query: {
-      '*': or(isAdmin, isOwner)
+      '*': isAdmin,
+      Person: or(isAdmin, isPersonOwner)
     },
     Mutation: {
-      '*': isAdmin
-    },
-    Person: {
-      '*': or(isAdmin, isOwner)
+      '*': isAdmin,
+      UpdatePerson: or(isAdmin, isPersonOwner),
+      LogContact: or(isAdmin, isContactLogger),
+      UnlogContact: or(isAdmin, isContactLogger)
     }
   },
   {
-    debug: true
+    debug: config.DEBUG
   }
 );

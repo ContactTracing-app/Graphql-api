@@ -39,7 +39,6 @@ export const tradeTokenForUser = async (authToken: string) => {
 
     return user;
   } catch (e) {
-    console.error(e);
     return null;
   }
 };
