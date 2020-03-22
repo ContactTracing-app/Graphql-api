@@ -65,3 +65,5 @@ typings/
 .env.test
 
 # End of https://www.gitignore.io/api/node,linux
+
+service-account-file.json
