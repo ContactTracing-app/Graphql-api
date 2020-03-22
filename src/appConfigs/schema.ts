@@ -43,7 +43,20 @@ export const typeDefs = gql`
         RETURN e
         """
       )
-    recentContactWith: [Person]
+    recentDirectContacts: [Person]
+      @cypher(
+        statement: """
+        WITH apoc.text.join(['log', this.uid], '_') AS logId
+        WITH date() - duration('P14D') AS since, logId
+        MATCH (log:Log {id: logId})-[r1]->(entry:LogEntry)-[:MADE_CONTACT_WITH]-(otherEntry:LogEntry)<-[r2]-(otherLog:Log)<-[:HAS_CONTACT_LOG]-(p:Person)
+        WHERE entry.date > since
+          AND TYPE(r1) STARTS WITH 'HAS_ENTRY_ON'
+          AND TYPE(r2) STARTS WITH 'HAS_ENTRY_ON'
+        RETURN p
+        ORDER BY otherEntry.date DESC
+        """
+      )
+    recentIndirectContacts: [Person]
       @cypher(
         statement: """
         WITH apoc.text.join(['log', this.uid], '_') AS logId
