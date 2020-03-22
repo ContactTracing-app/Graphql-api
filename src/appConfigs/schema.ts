@@ -41,8 +41,15 @@ export const typeDefs = gql`
         WHERE entry.date > since
           AND TYPE(r1) STARTS WITH 'HAS_ENTRY_ON'
           AND TYPE(r2) STARTS WITH 'HAS_ENTRY_ON'
-        RETURN p
-        ORDER BY entry.date DESC
+          WITH collect([p,otherEntry]) AS affectedPeople, log As user
+            UNWIND affectedPeople as aP
+              WITH apoc.text.join(['log', aP[0].uid], '_') AS flogId, aP, user, aP[1].date AS newdate
+                  MATCH (flog:Log {id: flogId})-[r1]->(entry:LogEntry)-[ufm:MADE_CONTACT_WITH]-(otherEntry:LogEntry)<-[r2]-(otherLog:Log)<-[:HAS_CONTACT_LOG]-(p:Person)
+                  WHERE entry.date > newdate
+                  AND TYPE(r1) STARTS WITH 'HAS_ENTRY_ON'
+                  AND TYPE(r2) STARTS WITH 'HAS_ENTRY_ON'
+              RETURN p
+          ORDER BY otherEntry.date DESC
         """
       )
   }
