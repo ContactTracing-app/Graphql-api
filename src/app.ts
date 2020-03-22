@@ -4,11 +4,17 @@ import bodyParser from 'body-parser';
 import { ApolloServer, makeExecutableSchema } from 'apollo-server-express';
 import { applyMiddleware } from 'graphql-middleware';
 import * as neo4j from 'neo4j-driver';
+import * as admin from 'firebase-admin';
 import { tradeTokenForUser } from './auth';
 import {
   typeDefs as defaultTypedefs,
   resolvers as defaultResolvers
 } from './appConfigs/schema';
+
+admin.initializeApp({
+  credential: admin.credential.applicationDefault(),
+  databaseURL: 'https://contact-tracking-app.firebaseio.com'
+});
 
 const typeDefs = process.env.TYPEDEFS || defaultTypedefs;
 const resolvers = defaultResolvers;
@@ -74,14 +80,14 @@ export default class App {
       schema: schemaWithMiddleware,
       // inject the request object into the context to support middleware
       // inject the Neo4j driver instance to handle database call
-      context: ({ req }): Context => {
+      context: async ({ req }): Promise<Context> => {
         const { authorization } = req.headers;
         const token =
           authorization && authorization.startsWith('Bearer ')
             ? authorization.slice(7, authorization.length)
             : '';
 
-        const user = tradeTokenForUser(token);
+        const user = await tradeTokenForUser(token);
         return {
           user,
           driver,

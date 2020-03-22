@@ -1,4 +1,4 @@
-import { rule, shield } from 'graphql-shield';
+import { rule, shield, or } from 'graphql-shield';
 import { Context } from './app';
 
 export const isAdmin = rule({ cache: 'contextual' })(
@@ -10,13 +10,36 @@ export const isAdmin = rule({ cache: 'contextual' })(
   }
 );
 
+export const isAuthenticated = rule({ cache: 'contextual' })(
+  async (parent, args, ctx: Context) => {
+    return ctx.user !== null;
+  }
+);
+
+interface Person {
+  uid: string;
+}
+export const isOwner = rule({
+  cache: 'contextual',
+  fragment: 'fragment PersonUid on Person { uid }'
+})(async (Person: Person, _, ctx: Context) => {
+  console.log(Person);
+  if (ctx.user) {
+    return Person.uid === ctx.user.uid;
+  }
+  return false;
+});
+
 export default shield(
   {
     Query: {
-      '*': isAdmin
+      '*': or(isAdmin, isOwner)
     },
     Mutation: {
       '*': isAdmin
+    },
+    Person: {
+      '*': or(isAdmin, isOwner)
     }
   },
   {
