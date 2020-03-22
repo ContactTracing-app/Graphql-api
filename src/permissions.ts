@@ -12,17 +12,20 @@ export const isAdmin = rule({ cache: 'contextual' })(
 );
 
 export const isAuthenticated = rule({ cache: 'contextual' })(
-  async (parent, args, ctx: Context) => {
-    return ctx.user !== null;
+  async (_, __, ctx: Context) => {
+    if (!ctx.user) {
+      return false;
+    }
+    return true;
   }
 );
 
-interface PersonArgs {
+interface AskingForPersonArgs {
   uid?: string;
 }
-export const isPersonOwner = rule({
+export const isOwnerRequestingPerson = rule({
   cache: 'strict'
-})(async (_, args: PersonArgs, ctx: Context) => {
+})(async (_, args: AskingForPersonArgs, ctx: Context) => {
   const { uid } = args;
 
   if (!ctx.user) {
@@ -43,7 +46,7 @@ interface LogContactArgs {
 }
 
 // You can only Log your own entries
-export const isContactLogger = rule({
+export const isOwnerLoggingContact = rule({
   cache: 'strict'
 })(async (_, args: LogContactArgs, ctx: Context) => {
   const {
@@ -57,17 +60,24 @@ export const isContactLogger = rule({
   return fromUid === ctx.user.uid;
 });
 
+export const test = rule({
+  cache: 'strict'
+})(async (Parent, _, ctx: Context) => {
+  console.log(JSON.stringify(Parent, null, 2));
+  return true;
+});
+
 export default shield(
   {
     Query: {
       '*': isAdmin,
-      Person: or(isAdmin, isPersonOwner)
+      Person: or(isAdmin, isOwnerRequestingPerson)
     },
     Mutation: {
       '*': isAdmin,
-      UpdatePerson: or(isAdmin, isPersonOwner),
-      LogContact: or(isAdmin, isContactLogger),
-      UnlogContact: or(isAdmin, isContactLogger)
+      UpdatePerson: or(isAdmin, isOwnerRequestingPerson),
+      LogContact: or(isAdmin, isOwnerLoggingContact),
+      UnlogContact: or(isAdmin, isOwnerLoggingContact)
     }
   },
   {
