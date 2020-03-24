@@ -75,6 +75,7 @@ export default shield(
     },
     Mutation: {
       '*': isAdmin,
+      CreateKnows: or(isAdmin, isOwnerRequestingPerson),
       UpdatePerson: or(isAdmin, isOwnerRequestingPerson),
       LogContact: or(isAdmin, isOwnerLoggingContact),
       UnlogContact: or(isAdmin, isOwnerLoggingContact)
