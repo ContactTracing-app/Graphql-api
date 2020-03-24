@@ -46,7 +46,7 @@ interface LogContactArgs {
 }
 
 // You can only Log your own entries
-export const isOwnerLoggingContact = rule({
+export const isOwnersRequest = rule({
   cache: 'strict'
 })(async (_, args: LogContactArgs, ctx: Context) => {
   const {
@@ -75,10 +75,10 @@ export default shield(
     },
     Mutation: {
       '*': isAdmin,
-      CreateKnows: or(isAdmin, isOwnerRequestingPerson),
+      CreateKnows: or(isAdmin, isOwnersRequest),
       UpdatePerson: or(isAdmin, isOwnerRequestingPerson),
-      LogContact: or(isAdmin, isOwnerLoggingContact),
-      UnlogContact: or(isAdmin, isOwnerLoggingContact)
+      LogContact: or(isAdmin, isOwnersRequest),
+      UnlogContact: or(isAdmin, isOwnersRequest)
     }
   },
   {
