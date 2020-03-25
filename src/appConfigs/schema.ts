@@ -27,26 +27,75 @@ export const typeDefs = gql`
     uid: ID!
     isInfected: Boolean!
     isInQuarantine: Boolean!
-    knows: [Person]
+    recentIndirectContactWith: [Person]
+  }
+
+  type LogEntry {
+    id: ID!
+    date: DateTime!
+    contactWith: [Person]!
       @cypher(
         statement: """
-        MATCH (this)-[:KNOWS]-(p:Person)
+        MATCH (this)-[:MADE_CONTACT_WITH]-(e:LogEntry)<-[r]-(:Log)<-[:HAS_CONTACT_LOG]-(p:Person)
+        WHERE TYPE(r) STARTS WITH 'HAS_ENTRY_ON'
         RETURN p
         """
       )
-    logEntries: [LogEntry]!
+  }
+
+  input PersonByIdInput {
+    uid: ID!
+  }
+
+  input LogEntriesForPersonInput {
+    uid: ID!
+  }
+
+  input ContactsForPersonInput {
+    uid: ID!
+  }
+
+  input RecentDirectContactsForPersonInput {
+    uid: ID!
+  }
+
+  input RecentIndirectContactsForPersonInput {
+    uid: ID!
+  }
+
+  type Query {
+    PersonById(input: PersonByIdInput!): Person
       @cypher(
         statement: """
-        WITH apoc.text.join(['log', this.uid], '_') AS logId
+        MATCH (p:Person {uid: $input.uid})
+        RETURN p
+        """
+      )
+
+    LogEntriesForPerson(input: LogEntriesForPersonInput!): [LogEntry]!
+      @cypher(
+        statement: """
+        WITH apoc.text.join(['log', $input.uid], '_') AS logId
         MATCH (log:Log {id: logId})-[r]-(e:LogEntry)
         WHERE TYPE(r) STARTS WITH 'HAS_ENTRY_ON'
         RETURN e
         """
       )
-    recentDirectContactWith: [Person]
+
+    ContactsForPerson(input: ContactsForPersonInput!): [Person]!
       @cypher(
         statement: """
-        WITH apoc.text.join(['log', this.uid], '_') AS logId
+        MATCH (a:Person {uid: $input.uid})-[:KNOWS]-(p:Person)
+        RETURN DISTINCT p
+        """
+      )
+
+    RecentDirectContactsForPerson(
+      input: RecentDirectContactsForPersonInput!
+    ): [Person]!
+      @cypher(
+        statement: """
+        WITH apoc.text.join(['log', $input.uid], '_') AS logId
         WITH date() - duration('P14D') AS since, logId
         MATCH (log:Log {id: logId})-[r1]->(entry:LogEntry)-[:MADE_CONTACT_WITH]-(otherEntry:LogEntry)<-[r2]-(otherLog:Log)<-[:HAS_CONTACT_LOG]-(p:Person)
         WHERE entry.date > since
@@ -56,10 +105,13 @@ export const typeDefs = gql`
         ORDER BY otherEntry.date DESC
         """
       )
-    recentIndirectContactWith: [Person]
+
+    RecentIndirectContactsForPerson(
+      input: RecentIndirectContactsForPersonInput!
+    ): [Person]!
       @cypher(
         statement: """
-        WITH apoc.text.join(['log', this.uid], '_') AS logId
+        WITH apoc.text.join(['log', $input.uid], '_') AS logId
         WITH date() - duration('P14D') AS since, logId
         MATCH (log:Log {id: logId})-[r1]->(entry:LogEntry)-[:MADE_CONTACT_WITH]-(otherEntry:LogEntry)<-[r2]-(otherLog:Log)<-[:HAS_CONTACT_LOG]-(p:Person)
         WHERE entry.date > since
@@ -74,19 +126,6 @@ export const typeDefs = gql`
                   AND TYPE(r2) STARTS WITH 'HAS_ENTRY_ON'
               RETURN p
           ORDER BY otherEntry.date DESC
-        """
-      )
-  }
-
-  type LogEntry {
-    id: ID!
-    date: DateTime!
-    contactWith: [Person]!
-      @cypher(
-        statement: """
-        MATCH (this)-[:MADE_CONTACT_WITH]-(e:LogEntry)<-[r]-(:Log)<-[:HAS_CONTACT_LOG]-(p:Person)
-        WHERE TYPE(r) STARTS WITH 'HAS_ENTRY_ON'
-        RETURN p
         """
       )
   }

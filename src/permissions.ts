@@ -60,6 +60,24 @@ export const isOwnersRequest = rule({
   return fromUid === ctx.user.uid;
 });
 
+export const isOwnerRequesting = rule({
+  cache: 'strict'
+})(async (_, args: { input: { uid: string } }, ctx: Context) => {
+  const {
+    input: { uid }
+  } = args;
+
+  if (!ctx.user) {
+    return false;
+  }
+
+  if (!uid) {
+    return false;
+  }
+
+  return uid === ctx.user.uid;
+});
+
 export const test = rule({
   cache: 'strict'
 })(async (Parent, _, ctx: Context) => {
@@ -71,7 +89,9 @@ export default shield(
   {
     Query: {
       '*': isAdmin,
-      Person: or(isAdmin, isOwnerRequestingPerson)
+      PersonById: or(isAdmin, isOwnerRequesting),
+      LogEntriesForPerson: or(isAdmin, isOwnerRequesting),
+      ContactsForPerson: or(isAdmin, isOwnerRequesting)
     },
     Mutation: {
       '*': isAdmin,
