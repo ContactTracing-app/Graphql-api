@@ -78,6 +78,9 @@ export default class App {
     this.app = express();
     this.server = new ApolloServer({
       schema: schemaWithMiddleware,
+      engine: {
+        apiKey: process.env.ENGINE_API_KEY || ''
+      },
       // inject the request object into the context to support middleware
       // inject the Neo4j driver instance to handle database call
       context: async ({ req }): Promise<Context> => {

@@ -3,7 +3,7 @@ const config = {
   NEO4J_USER: process.env.NEO4J_USER || 'neo4j',
   NEO4J_PASSWORD: process.env.NEO4J_PASSWORD || 'letmein',
   PORT: Number(process.env.PORT) || 5000,
-  DEBUG: Boolean(process.env.DEBUG || true)
+  DEBUG: Boolean(process.env.DEBUG || false)
 };
 
 export default config;
