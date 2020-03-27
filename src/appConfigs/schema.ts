@@ -27,7 +27,6 @@ export const typeDefs = gql`
     uid: ID!
     isInfected: Boolean!
     isInQuarantine: Boolean!
-    recentIndirectContactWith: [Person]
   }
 
   type LogEntry {
