@@ -1,6 +1,12 @@
 const gql = String.raw;
 
 export const typeDefs = gql`
+  enum HealthStatus {
+    TOTALLY_FINE
+    SHOWING_SYMPTOMS
+    TESTED_POSITIVE
+  }
+
   input CreatePersonInput {
     uid: ID!
   }
@@ -25,7 +31,7 @@ export const typeDefs = gql`
   type Person {
     _id: ID!
     uid: ID!
-    isInfected: Boolean!
+    status: HealthStatus!
     isInQuarantine: Boolean!
   }
 
@@ -170,7 +176,7 @@ export const typeDefs = gql`
         WITH date() AS now
         WITH apoc.temporal.format(now, 'YYYY-MM-dd') AS dateFormat, now
         WITH apoc.text.join(['log', $input.uid], '_') AS logId, dateFormat, now
-        CREATE (p:Person { uid: $input.uid })-[:HAS_CONTACT_LOG]->(log:Log { id: logId })
+        CREATE (p:Person { uid: $input.uid, status: 'TOTALLY_FINE' })-[:HAS_CONTACT_LOG]->(log:Log { id: logId })
         SET p.isInfected = false, p.isInQuarantine = false, log.createdAt = now, log.updatedAt = now
         RETURN p
         """
