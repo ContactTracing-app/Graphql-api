@@ -83,7 +83,7 @@ export const typeDefs = gql`
         WITH apoc.text.join(['log', $input.uid], '_') AS logId
         MATCH (log:Log {id: logId})-[r]-(e:LogEntry)
         WHERE TYPE(r) STARTS WITH 'HAS_ENTRY_ON'
-        RETURN e ORDER BY TYPE(r) DESC LIMIT 50
+        RETURN e ORDER BY TYPE(r) DESC LIMIT 100
         """
       )
 
