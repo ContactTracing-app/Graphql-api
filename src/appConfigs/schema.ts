@@ -205,11 +205,6 @@ export const typeDefs = gql`
         WITH apoc.text.join([$input.yyyy, $input.mm, $input.dd], '-') AS dateFormat
         WITH date(dateFormat) AS logDate, dateFormat
 
-        // Higher
-        MATCH (p1:Person {uid: $input.fromUid})
-        MATCH (p2:Person {uid: $input.toUid})
-        MERGE (p1)-[:KNOWS]->(p2)
-
         // Logs
         WITH apoc.text.join(['log', $input.fromUid], '_') AS fromLogId, logDate, dateFormat
         WITH apoc.text.join(['log', $input.toUid], '_') AS toLogId, fromLogId, logDate, dateFormat
