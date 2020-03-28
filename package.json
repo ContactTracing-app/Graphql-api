@@ -5,13 +5,14 @@
   "main": "build/server.js",
   "scripts": {
     "build": "tsc",
+    "dev": "node --inspect=5858 -r ts-node/register ./src/server.ts",
+    "dev:watch": "nodemon",
+    "gc:publish": "gcloud builds submit . --config=cloudbuild.yaml",
     "lint": "./node_modules/.bin/eslint --ext ts ./src",
     "setup": "npm run build",
     "start": "node ./build/server.js",
     "test": "echo \"Error: no test specified\"",
-    "watch": "tsc -w",
-    "dev": "yarn run watch && yarn run start",
-    "gc:publish": "gcloud builds submit . --config=cloudbuild.yaml"
+    "watch": "tsc -w"
   },
   "dependencies": {
     "apollo-server": "^2.11.0",
@@ -23,6 +24,8 @@
     "helmet": "^3.21.3",
     "neo4j-driver": "^4.0.2",
     "neo4j-graphql-js": "^2.13.0",
+    "nodemon": "^2.0.2",
+    "ts-node": "^8.8.1",
     "tsscmp": "^1.0.6",
     "typescript": "^3.8.3"
   },
@@ -57,5 +60,18 @@
       "eslint --fix",
       "git add"
     ]
+  },
+  "nodemonConfig": {
+    "ignore": [
+      "**/*.test.ts",
+      "**/*.spec.ts",
+      ".git",
+      "node_modules"
+    ],
+    "watch": [
+      "src"
+    ],
+    "exec": "npm run dev",
+    "ext": "ts"
   }
 }
