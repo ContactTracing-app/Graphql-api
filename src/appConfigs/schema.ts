@@ -106,8 +106,7 @@ export const typeDefs = gql`
         WHERE entry.date > since
           AND TYPE(r1) STARTS WITH 'HAS_ENTRY_ON'
           AND TYPE(r2) STARTS WITH 'HAS_ENTRY_ON'
-        RETURN p
-        ORDER BY otherEntry.date DESC
+        RETURN DISTINCT p
         """
       )
 
@@ -129,8 +128,8 @@ export const typeDefs = gql`
                   WHERE entry.date > newdate
                   AND TYPE(r1) STARTS WITH 'HAS_ENTRY_ON'
                   AND TYPE(r2) STARTS WITH 'HAS_ENTRY_ON'
-              RETURN p
-          ORDER BY otherEntry.date DESC
+                  AND p.uid <> $input.uid
+          RETURN DISTINCT p
         """
       )
   }
