@@ -51,6 +51,7 @@ export const typeDefs = gql`
   type Place {
     _id: ID!
     uid: ID!
+    name: String!
     location: Point!
     hasDay: [PlaceDay]!
      @cypher(
