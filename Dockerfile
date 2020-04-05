@@ -2,17 +2,23 @@
 FROM node:12.15-slim AS base
 # Create Directory for the Container
 WORKDIR /usr/src/app
-# Only copy the package.json file to work directory
-COPY package.json .
-# Install all Packages
+
+# Copy all source code to work directory
+COPY . /usr/src/app
+
+# Install all Packages and run TypeScript
 RUN npm install
-# Copy all other source code to work directory
-ADD . /usr/src/app
-# TypeScript
 RUN npm run build
+
+FROM node:12.16.1-alpine3.10 AS runtime
+
+WORKDIR /usr/app
+COPY --from=base /usr/src/app/node_modules /usr/app/node_modules
+COPY --from=base /usr/src/app/build /usr/app
+
 # Start
 # expose port and define CMD
 ENV PORT=8080
 EXPOSE ${PORT}
 
-CMD npm run start
+CMD node /usr/app/server.js
