@@ -1,6 +1,6 @@
 # Graphql API for contact-tracing.app
 <!-- ALL-CONTRIBUTORS-BADGE:START - Do not remove or modify this section -->
-[![All Contributors](https://img.shields.io/badge/all_contributors-4-orange.svg?style=flat-square)](#contributors-)
+[![All Contributors](https://img.shields.io/badge/all_contributors-5-orange.svg?style=flat-square)](#contributors-)
 <!-- ALL-CONTRIBUTORS-BADGE:END -->
 
 My partner and I are frantically building this app to help people keep their loved ones safe during this COVID-19 outbreak.
@@ -33,6 +33,7 @@ Thanks goes to these wonderful people ([emoji key](https://allcontributors.org/d
     <td align="center"><a href="https://github.com/lisabang"><img src="https://avatars1.githubusercontent.com/u/4474752?v=4" width="100px;" alt=""/><br /><sub><b>Lisa Bang</b></sub></a><br /><a href="https://github.com/ContactTracing-app/Graphql-api/commits?author=lisabang" title="Code">💻</a></td>
     <td align="center"><a href="https://github.com/kavyvetri"><img src="https://avatars3.githubusercontent.com/u/51841723?v=4" width="100px;" alt=""/><br /><sub><b>kavyvetri</b></sub></a><br /><a href="https://github.com/ContactTracing-app/Graphql-api/commits?author=kavyvetri" title="Code">💻</a></td>
     <td align="center"><a href="http://tbgraph.wordpress.com"><img src="https://avatars1.githubusercontent.com/u/19948365?v=4" width="100px;" alt=""/><br /><sub><b>Tomaz Bratanic</b></sub></a><br /><a href="https://github.com/ContactTracing-app/Graphql-api/commits?author=tomasonjo" title="Code">💻</a></td>
+    <td align="center"><a href="https://about.me/gcristofol"><img src="https://avatars3.githubusercontent.com/u/4062847?v=4" width="100px;" alt=""/><br /><sub><b>Gerard Cristofol</b></sub></a><br /><a href="#infra-gcristofol" title="Infrastructure (Hosting, Build-Tools, etc)">🚇</a></td>
   </tr>
 </table>
 
