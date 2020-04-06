@@ -31,6 +31,15 @@
       "contributions": [
         "code"
       ]
+    },
+    {
+      "login": "tomasonjo",
+      "name": "Tomaz Bratanic",
+      "avatar_url": "https://avatars1.githubusercontent.com/u/19948365?v=4",
+      "profile": "http://tbgraph.wordpress.com",
+      "contributions": [
+        "code"
+      ]
     }
   ],
   "contributorsPerLine": 7,
