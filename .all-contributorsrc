@@ -40,6 +40,15 @@
       "contributions": [
         "code"
       ]
+    },
+    {
+      "login": "gcristofol",
+      "name": "Gerard Cristofol",
+      "avatar_url": "https://avatars3.githubusercontent.com/u/4062847?v=4",
+      "profile": "https://about.me/gcristofol",
+      "contributions": [
+        "infra"
+      ]
     }
   ],
   "contributorsPerLine": 7,
