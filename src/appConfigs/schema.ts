@@ -48,6 +48,33 @@ export const typeDefs = gql`
       )
   }
 
+  type Place {
+    _id: ID!
+    uid: ID!
+    name: String!
+    location: Point!
+    hasDay: [PlaceDay]!
+     @cypher(
+       statement: """
+       MATCH (this)-->(day:PlaceDay)
+       OPTIONAL MATCH (day)<-[:HAS_LOCATION]-(logEntry)
+       RETURN {date:day.date, visitors:collect(logEntry)}
+       """
+     )
+  }
+
+  type PlaceDay {
+    id: ID!
+    date: DateTime!
+    visitorLogs:[LogEntry]!
+     @cypher(
+      statement: """
+      MATCH (this)<-[:HAS_LOCATION]-(logEntry)
+      RETURN logEntry
+      """
+     )
+  }
+
   input PersonByIdInput {
     uid: ID!
   }
